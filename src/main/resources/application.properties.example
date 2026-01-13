@@ -1,0 +1,27 @@
+spring.application.name=rh360
+
+# Configurações do PostgreSQL
+# Usa variáveis de ambiente se disponíveis, senão usa valores padrão
+# Para Docker, configure as variáveis no arquivo .env
+spring.datasource.url=${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/neondb?sslmode=require}
+spring.datasource.username=${SPRING_DATASOURCE_USERNAME:seu_usuario}
+spring.datasource.password=${SPRING_DATASOURCE_PASSWORD:sua_senha}
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# Configurações do JPA/Hibernate
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.properties.hibernate.format_sql=true
+
+# Configurações JWT
+# Usa variáveis de ambiente se disponíveis, senão usa valores padrão
+# Para Docker, configure as variáveis no arquivo .env
+jwt.secret=${JWT_SECRET:SUA_CHAVE_SECRETA_JWT_AQUI_DEVE_SER_LONGA_E_SEGURA}
+jwt.expiration=${JWT_EXPIRATION:86400000}
+
+# Configurações do Swagger/OpenAPI
+springdoc.api-docs.path=/api-docs
+springdoc.swagger-ui.path=/swagger-ui.html
+springdoc.swagger-ui.operationsSorter=method
+springdoc.swagger-ui.tagsSorter=alpha

@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  rh360:
+    build: .
+    container_name: rh360-api
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      # Spring Boot pode usar variáveis de ambiente diretamente
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION}
+    restart: unless-stopped
+    networks:
+      - rh360-network
+
+networks:
+  rh360-network:
+    driver: bridge
