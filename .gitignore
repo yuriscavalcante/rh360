@@ -32,8 +32,5 @@ build/
 ### VS Code ###
 .vscode/
 
-### Application Properties (contém dados sensíveis) ###
-src/main/resources/application.properties
-
 ### Environment Variables ###
 .env
