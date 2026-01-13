@@ -1,6 +1,7 @@
 package com.rh360.rh360.controller;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -80,7 +81,7 @@ public class UsersController {
         )
     })
     @GetMapping("/{id}")
-    public User findById(@PathVariable Long id) {
+    public User findById(@PathVariable UUID id) {
         return service.findById(id);
     }
 
@@ -102,7 +103,7 @@ public class UsersController {
     })
     @GetMapping("/me")
     public User getCurrentUser(HttpServletRequest request) {
-        Long userId = SecurityUtil.getUserId(request);
+        UUID userId = SecurityUtil.getUserId(request);
         if (userId == null) {
             throw new RuntimeException("Usuário não autenticado");
         }

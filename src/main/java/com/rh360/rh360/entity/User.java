@@ -7,6 +7,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import lombok.Data;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.UUID;
 
 @Entity
 @Table(name = "users")
@@ -15,9 +16,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Schema(description = "ID único do usuário", example = "1")
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Schema(description = "ID único do usuário", example = "550e8400-e29b-41d4-a716-446655440000")
+    private UUID id;
 
     @Schema(description = "Nome completo do usuário", example = "João Silva")
     private String name;
@@ -42,14 +43,5 @@ public class User {
 
     @Schema(description = "Data de exclusão do registro (soft delete)")
     private String deletedAt;
-
-    @Schema(description = "Usuário que criou o registro")
-    private String createdBy;
-
-    @Schema(description = "Usuário que atualizou o registro")
-    private String updatedBy;
-
-    @Schema(description = "Usuário que excluiu o registro")
-    private String deletedBy;
 
 }

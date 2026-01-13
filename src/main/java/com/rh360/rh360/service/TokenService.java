@@ -18,6 +18,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Function;
 
 @Service
@@ -37,9 +38,9 @@ public class TokenService {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String generateToken(Long userId, String email, String role) {
+    public String generateToken(UUID userId, String email, String role) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userId);
+        claims.put("userId", userId.toString());
         claims.put("email", email);
         claims.put("role", role);
         
@@ -55,7 +56,7 @@ public class TokenService {
                 .compact();
     }
 
-    public Token saveToken(String tokenString, Long userId) {
+    public Token saveToken(String tokenString, UUID userId) {
         Date expirationDate = extractExpiration(tokenString);
         LocalDateTime expiresAt = LocalDateTime.ofInstant(
                 Instant.ofEpochMilli(expirationDate.getTime()), 
@@ -75,9 +76,10 @@ public class TokenService {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public Long extractUserId(String token) {
+    public UUID extractUserId(String token) {
         Claims claims = extractAllClaims(token);
-        return claims.get("userId", Long.class);
+        String userIdString = claims.get("userId", String.class);
+        return UUID.fromString(userIdString);
     }
 
     public String extractRole(String token) {
@@ -132,7 +134,7 @@ public class TokenService {
         });
     }
 
-    public void deactivateAllUserTokens(Long userId) {
+    public void deactivateAllUserTokens(UUID userId) {
         java.util.List<Token> activeTokens = tokenRepository.findByUserIdAndActiveTrue(userId);
         activeTokens.forEach(token -> {
             token.setActive(false);

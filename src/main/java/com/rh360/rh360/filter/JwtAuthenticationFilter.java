@@ -62,7 +62,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             // Adicionar informações do usuário ao request para uso nos controllers
-            Long userId = tokenService.extractUserId(token);
+            java.util.UUID userId = tokenService.extractUserId(token);
             String email = tokenService.extractEmail(token);
             String role = tokenService.extractRole(token);
 

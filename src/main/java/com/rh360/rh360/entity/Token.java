@@ -3,6 +3,7 @@ package com.rh360.rh360.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "tokens")
@@ -17,7 +18,7 @@ public class Token {
     private String token;
 
     @Column(nullable = false)
-    private Long userId;
+    private UUID userId;
 
     @Column(nullable = false)
     private Boolean active = true;

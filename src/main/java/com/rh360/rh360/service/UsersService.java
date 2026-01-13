@@ -2,6 +2,7 @@ package com.rh360.rh360.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,8 +23,6 @@ public class UsersService {
     public User create(User user) {
         user.setCreatedAt(LocalDateTime.now().toString());
         user.setUpdatedAt(LocalDateTime.now().toString());
-        user.setCreatedBy("system");
-        user.setUpdatedBy("system");
         user.setStatus("active");
         user.setRole("user");
         user.setPassword(passwordEncoder.encode(user.getPassword()));
@@ -34,7 +33,7 @@ public class UsersService {
         return repository.findAll();
     }
 
-    public User findById(Long id) {
+    public User findById(UUID id) {
         return repository.findById(id).orElse(null);
     }
 

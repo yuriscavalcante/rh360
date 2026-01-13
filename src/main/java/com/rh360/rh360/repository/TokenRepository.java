@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public interface TokenRepository extends JpaRepository<Token, Long> {
@@ -13,9 +14,9 @@ public interface TokenRepository extends JpaRepository<Token, Long> {
 
     Optional<Token> findByToken(String token);
 
-    java.util.List<Token> findByUserIdAndActiveTrue(Long userId);
+    java.util.List<Token> findByUserIdAndActiveTrue(UUID userId);
 
-    void deleteByUserId(Long userId);
+    void deleteByUserId(UUID userId);
 
     void deleteByExpiresAtBefore(java.time.LocalDateTime dateTime);
 }

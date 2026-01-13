@@ -1,12 +1,13 @@
 package com.rh360.rh360.util;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.UUID;
 
 public class SecurityUtil {
 
-    public static Long getUserId(HttpServletRequest request) {
+    public static UUID getUserId(HttpServletRequest request) {
         Object userId = request.getAttribute("userId");
-        return userId != null ? (Long) userId : null;
+        return userId != null ? (UUID) userId : null;
     }
 
     public static String getEmail(HttpServletRequest request) {
