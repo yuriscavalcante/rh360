@@ -93,17 +93,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private void addCorsHeaders(HttpServletRequest request, HttpServletResponse response) {
+        // Deixar o CORS filter lidar com os headers
+        // Apenas garantir que não bloqueie
         String origin = request.getHeader("Origin");
-        if (origin != null) {
+        if (origin != null && !response.containsHeader("Access-Control-Allow-Origin")) {
             response.setHeader("Access-Control-Allow-Origin", origin);
-        } else {
-            response.setHeader("Access-Control-Allow-Origin", "*");
+            response.setHeader("Access-Control-Allow-Credentials", "true");
         }
-        response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
-        response.setHeader("Access-Control-Allow-Headers", "*");
-        response.setHeader("Access-Control-Expose-Headers", "Authorization, Content-Type");
-        response.setHeader("Access-Control-Allow-Credentials", "true");
-        response.setHeader("Access-Control-Max-Age", "3600");
     }
 
     private boolean isExcludedPath(String path) {
