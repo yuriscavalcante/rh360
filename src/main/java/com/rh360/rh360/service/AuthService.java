@@ -32,14 +32,17 @@ public class AuthService {
             throw new RuntimeException("Senha incorreta");
         }
 
-        // Gerar token JWT
+        // Invalidar todos os tokens anteriores do usuário
+        tokenService.deactivateAllUserTokens(user.getId());
+
+        // Gerar novo token JWT
         String token = tokenService.generateToken(
                 user.getId(),
                 user.getEmail(),
                 user.getRole() != null ? user.getRole() : "USER"
         );
 
-        // Salvar token no banco de dados
+        // Salvar novo token no banco de dados
         tokenService.saveToken(token, user.getId());
 
         return new LoginResponse(user.getId(), token);

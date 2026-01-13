@@ -13,6 +13,8 @@ public interface TokenRepository extends JpaRepository<Token, Long> {
 
     Optional<Token> findByToken(String token);
 
+    java.util.List<Token> findByUserIdAndActiveTrue(Long userId);
+
     void deleteByUserId(Long userId);
 
     void deleteByExpiresAtBefore(java.time.LocalDateTime dateTime);

@@ -132,6 +132,14 @@ public class TokenService {
         });
     }
 
+    public void deactivateAllUserTokens(Long userId) {
+        java.util.List<Token> activeTokens = tokenRepository.findByUserIdAndActiveTrue(userId);
+        activeTokens.forEach(token -> {
+            token.setActive(false);
+            tokenRepository.save(token);
+        });
+    }
+
     public Optional<Token> findActiveToken(String token) {
         return tokenRepository.findByTokenAndActiveTrue(token);
     }
