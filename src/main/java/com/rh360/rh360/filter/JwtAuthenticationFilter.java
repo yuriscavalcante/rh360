@@ -6,13 +6,11 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
 
-@Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
@@ -20,7 +18,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final List<String> EXCLUDED_PATHS = List.of(
             "/api/auth/login",
-            "/api/auth/register",
             "/error",
             "/actuator",
             "/swagger-ui",
@@ -45,6 +42,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         // Permitir requisições sem autenticação para paths específicos
+        // Verificar ANTES de validar token
         if (isExcludedPath(requestPath)) {
             filterChain.doFilter(request, response);
             return;
@@ -93,16 +91,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private void addCorsHeaders(HttpServletRequest request, HttpServletResponse response) {
-        // Deixar o CORS filter lidar com os headers
-        // Apenas garantir que não bloqueie
+        // Garantir que headers CORS estejam presentes mesmo em caso de erro
         String origin = request.getHeader("Origin");
-        if (origin != null && !response.containsHeader("Access-Control-Allow-Origin")) {
+        if (origin != null) {
             response.setHeader("Access-Control-Allow-Origin", origin);
-            response.setHeader("Access-Control-Allow-Credentials", "true");
+        } else {
+            response.setHeader("Access-Control-Allow-Origin", "*");
         }
+        response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers", "*");
+        response.setHeader("Access-Control-Allow-Credentials", "true");
+        response.setHeader("Access-Control-Expose-Headers", "Authorization, Content-Type");
     }
 
     private boolean isExcludedPath(String path) {
-        return EXCLUDED_PATHS.stream().anyMatch(path::startsWith);
+        // Normalizar o path (remover query string se houver)
+        String normalizedPath = path.split("\\?")[0];
+        
+        // Verificar se o path corresponde exatamente ou começa com algum dos paths excluídos
+        for (String excluded : EXCLUDED_PATHS) {
+            if (normalizedPath.equals(excluded) || normalizedPath.startsWith(excluded)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
