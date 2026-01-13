@@ -29,34 +29,49 @@ public class WebConfig implements WebMvcConfigurer {
         FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(jwtAuthenticationFilter);
         registration.addUrlPatterns("/api/*");
-        // Ordem 2 para executar após o CORS (que tem ordem padrão 0)
-        registration.setOrder(2);
+        // Ordem 1 para executar após o CORS (que tem ordem padrão 0)
+        registration.setOrder(1);
+        return registration;
+    }
+    
+    @Bean
+    public FilterRegistrationBean<CorsFilter> corsFilterRegistration(CorsFilter corsFilter) {
+        FilterRegistrationBean<CorsFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(corsFilter);
+        registration.addUrlPatterns("/*");
+        // Ordem 0 para executar primeiro, antes do JWT filter
+        registration.setOrder(0);
         return registration;
     }
 
     @Bean
     public CorsFilter corsFilter() {
-        CorsConfiguration corsConfiguration = new CorsConfiguration();
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         
         // Obter origens permitidas da configuração, padrão "*"
         String allowedOrigins = environment.getProperty("cors.allowed-origins", "*");
         
-        // Configurar origens permitidas
-        // Se for "*", usar allowedOriginPatterns (não permite credentials)
-        // Se for uma lista específica, usar allowedOrigins (permite credentials)
+        CorsConfiguration corsConfiguration = new CorsConfiguration();
+        
+        // Para desenvolvimento: usar allowedOriginPatterns com "*" 
+        // Isso permite qualquer origem dinamicamente
         if ("*".equals(allowedOrigins)) {
+            // Permitir todas as origens usando pattern
+            // Isso permite que qualquer origem seja aceita dinamicamente
             corsConfiguration.setAllowedOriginPatterns(List.of("*"));
-            corsConfiguration.setAllowCredentials(false);
+            // Permitir credentials mesmo com pattern (funciona com allowedOriginPatterns)
+            corsConfiguration.setAllowCredentials(true);
         } else {
+            // Permitir origens específicas (permite credentials)
             List<String> origins = Arrays.asList(allowedOrigins.split(","));
-            corsConfiguration.setAllowedOrigins(origins);
+            corsConfiguration.setAllowedOrigins(origins.stream().map(String::trim).toList());
             corsConfiguration.setAllowCredentials(true);
         }
         
         // Métodos HTTP permitidos
         corsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         
-        // Headers permitidos
+        // Headers permitidos (incluindo Authorization)
         corsConfiguration.setAllowedHeaders(Arrays.asList("*"));
         
         // Headers expostos para o cliente
@@ -65,7 +80,6 @@ public class WebConfig implements WebMvcConfigurer {
         // Tempo de cache para preflight requests
         corsConfiguration.setMaxAge(3600L);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", corsConfiguration);
 
         return new CorsFilter(source);
@@ -81,12 +95,12 @@ public class WebConfig implements WebMvcConfigurer {
                     .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                     .allowedHeaders("*")
                     .exposedHeaders("Authorization", "Content-Type")
-                    .allowCredentials(false)
+                    .allowCredentials(true)
                     .maxAge(3600);
         } else {
             List<String> origins = Arrays.asList(allowedOrigins.split(","));
             registry.addMapping("/**")
-                    .allowedOrigins(origins.toArray(new String[0]))
+                    .allowedOrigins(origins.stream().map(String::trim).toArray(String[]::new))
                     .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                     .allowedHeaders("*")
                     .exposedHeaders("Authorization", "Content-Type")

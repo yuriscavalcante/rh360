@@ -53,6 +53,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String authHeader = request.getHeader("Authorization");
         
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            // Adicionar headers CORS antes de retornar erro
+            addCorsHeaders(request, response);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("{\"error\":\"Token não fornecido ou formato inválido\"}");
             response.setContentType("application/json");
@@ -63,6 +65,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             if (!tokenService.validateToken(token)) {
+                // Adicionar headers CORS antes de retornar erro
+                addCorsHeaders(request, response);
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.getWriter().write("{\"error\":\"Token inválido, expirado ou inativo\"}");
                 response.setContentType("application/json");
@@ -80,10 +84,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             filterChain.doFilter(request, response);
         } catch (Exception e) {
+            // Adicionar headers CORS antes de retornar erro
+            addCorsHeaders(request, response);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("{\"error\":\"Erro ao validar token: " + e.getMessage() + "\"}");
             response.setContentType("application/json");
         }
+    }
+
+    private void addCorsHeaders(HttpServletRequest request, HttpServletResponse response) {
+        String origin = request.getHeader("Origin");
+        if (origin != null) {
+            response.setHeader("Access-Control-Allow-Origin", origin);
+        } else {
+            response.setHeader("Access-Control-Allow-Origin", "*");
+        }
+        response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers", "*");
+        response.setHeader("Access-Control-Expose-Headers", "Authorization, Content-Type");
+        response.setHeader("Access-Control-Allow-Credentials", "true");
+        response.setHeader("Access-Control-Max-Age", "3600");
     }
 
     private boolean isExcludedPath(String path) {
