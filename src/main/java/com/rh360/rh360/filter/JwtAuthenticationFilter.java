@@ -36,6 +36,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         
         String requestPath = request.getRequestURI();
+        String method = request.getMethod();
+
+        // Permitir requisições OPTIONS (preflight CORS)
+        if ("OPTIONS".equalsIgnoreCase(method)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         // Permitir requisições sem autenticação para paths específicos
         if (isExcludedPath(requestPath)) {
