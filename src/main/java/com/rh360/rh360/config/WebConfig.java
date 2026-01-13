@@ -1,5 +1,7 @@
 package com.rh360.rh360.config;
 
+import com.rh360.rh360.filter.JwtAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,6 +13,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
+
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public FilterRegistrationBean<CorsFilter> corsFilterRegistration() {
@@ -26,5 +31,14 @@ public class WebConfig implements WebMvcConfigurer {
         FilterRegistrationBean<CorsFilter> bean = new FilterRegistrationBean<>(new CorsFilter(source));
         bean.setOrder(Ordered.HIGHEST_PRECEDENCE); // Executa primeiro, antes de todos os outros filtros
         return bean;
+    }
+
+    @Bean
+    public FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration() {
+        FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(jwtAuthenticationFilter);
+        registration.addUrlPatterns("/api/*"); // Intercepta todas as rotas /api/*
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 1); // Executa depois do CORS
+        return registration;
     }
 }
