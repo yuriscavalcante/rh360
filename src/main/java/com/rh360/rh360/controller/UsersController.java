@@ -41,7 +41,8 @@ public class UsersController {
 
     @Operation(
         summary = "Criar novo usuário",
-        description = "Cria um novo usuário no sistema. Os campos 'role' e 'status' são definidos automaticamente se não fornecidos."
+        description = "Cria um novo usuário no sistema. Os campos 'role' e 'status' são definidos automaticamente se não fornecidos. " +
+                      "O email deve ser único no sistema."
     )
     @ApiResponses(value = {
         @ApiResponse(
@@ -52,6 +53,11 @@ public class UsersController {
         @ApiResponse(
             responseCode = "400",
             description = "Requisição inválida - dados do usuário incorretos ou faltando",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "409",
+            description = "Conflito - email já cadastrado no sistema",
             content = @Content
         ),
         @ApiResponse(
@@ -176,7 +182,7 @@ public class UsersController {
 
     @Operation(
         summary = "Atualizar usuário",
-        description = "Atualiza os dados de um usuário específico",
+        description = "Atualiza os dados de um usuário específico. O email deve ser único no sistema.",
         security = @SecurityRequirement(name = "Bearer Authentication")
     )
     @ApiResponses(value = {
@@ -198,6 +204,11 @@ public class UsersController {
         @ApiResponse(
             responseCode = "400",
             description = "Dados inválidos - requisição malformada",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "409",
+            description = "Conflito - email já cadastrado no sistema",
             content = @Content
         ),
         @ApiResponse(

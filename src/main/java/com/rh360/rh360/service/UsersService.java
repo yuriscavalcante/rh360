@@ -26,6 +26,11 @@ public class UsersService {
     }
 
     public User create(User user) {
+        // Verificar se o email já existe
+        if (repository.findByEmail(user.getEmail()).isPresent()) {
+            throw new RuntimeException("Email já cadastrado");
+        }
+        
         user.setCreatedAt(LocalDateTime.now().toString());
         user.setUpdatedAt(LocalDateTime.now().toString());
         user.setStatus("active");
@@ -51,6 +56,14 @@ public class UsersService {
         if (existingUser == null) {
             throw new RuntimeException("Usuário não encontrado");
         }
+        
+        // Verificar se o email já está sendo usado por outro usuário
+        if (!existingUser.getEmail().equals(user.getEmail())) {
+            if (repository.findByEmail(user.getEmail()).isPresent()) {
+                throw new RuntimeException("Email já cadastrado");
+            }
+        }
+        
         existingUser.setEmail(user.getEmail());
         existingUser.setName(user.getName());
         existingUser.setRole(user.getRole());

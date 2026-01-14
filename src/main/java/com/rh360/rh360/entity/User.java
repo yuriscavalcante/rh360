@@ -5,6 +5,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Id;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.Column;
 import lombok.Data;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.UUID;
@@ -23,7 +24,8 @@ public class User {
     @Schema(description = "Nome completo do usuário", example = "João Silva")
     private String name;
 
-    @Schema(description = "Email do usuário", example = "joao.silva@example.com")
+    @Column(nullable = false, unique = true)
+    @Schema(description = "Email do usuário (deve ser único)", example = "joao.silva@example.com")
     private String email;
 
     @Schema(description = "Senha criptografada do usuário", accessMode = Schema.AccessMode.WRITE_ONLY)
