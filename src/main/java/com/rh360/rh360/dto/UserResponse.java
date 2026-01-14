@@ -23,6 +23,9 @@ public class UserResponse {
     @Schema(description = "Role do usuário", example = "admin")
     private String role;
 
+    @Schema(description = "Status do usuário", example = "active")
+    private String status;
+
     @Schema(description = "Data de criação do usuário", example = "2021-01-01")
     private String createdAt;
 
@@ -34,6 +37,7 @@ public class UserResponse {
         this.name = user.getName();
         this.email = user.getEmail();
         this.role = user.getRole();
+        this.status = user.getStatus();
         this.createdAt = user.getCreatedAt();
         this.updatedAt = user.getUpdatedAt();
     }
