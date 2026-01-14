@@ -41,13 +41,23 @@ public class UsersController {
 
     @Operation(
         summary = "Criar novo usuário",
-        description = "Cria um novo usuário no sistema"
+        description = "Cria um novo usuário no sistema. Os campos 'role' e 'status' são definidos automaticamente se não fornecidos."
     )
     @ApiResponses(value = {
         @ApiResponse(
             responseCode = "200",
             description = "Usuário criado com sucesso",
             content = @Content(schema = @Schema(implementation = User.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Requisição inválida - dados do usuário incorretos ou faltando",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Erro interno do servidor",
+            content = @Content
         )
     })
     @PostMapping
@@ -57,14 +67,33 @@ public class UsersController {
 
     @Operation(
         summary = "Listar todos os usuários",
-        description = "Retorna uma lista paginada com todos os usuários cadastrados. Use os parâmetros 'page', 'size' e 'sort' para controlar a paginação",
+        description = "Retorna uma lista paginada com todos os usuários cadastrados. " +
+                      "Parâmetros de query aceitos: " +
+                      "'page' (número da página, começa em 0, padrão: 0), " +
+                      "'size' (tamanho da página, padrão: 20), " +
+                      "'sort' (campo de ordenação no formato 'campo,direção', exemplo: 'name,asc' ou 'createdAt,desc').",
         security = @SecurityRequirement(name = "Bearer Authentication")
     )
     @ApiResponses(value = {
         @ApiResponse(
             responseCode = "200",
             description = "Lista de usuários retornada com sucesso",
-            content = @Content(schema = @Schema(implementation = User.class))
+            content = @Content(schema = @Schema(implementation = Page.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado - token JWT ausente ou inválido",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Parâmetros de paginação inválidos",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Erro interno do servidor",
+            content = @Content
         )
     })
     @GetMapping
@@ -82,6 +111,26 @@ public class UsersController {
             responseCode = "200",
             description = "Usuário encontrado",
             content = @Content(schema = @Schema(implementation = User.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado - token JWT ausente ou inválido",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Usuário não encontrado",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "ID inválido",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Erro interno do servidor",
+            content = @Content
         )
     })
     @GetMapping("/{id}")
@@ -102,7 +151,18 @@ public class UsersController {
         ),
         @ApiResponse(
             responseCode = "401",
-            description = "Usuário não autenticado"
+            description = "Não autenticado - token JWT ausente, inválido ou expirado",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Usuário não encontrado",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Erro interno do servidor",
+            content = @Content
         )
     })
     @GetMapping("/me")
@@ -124,6 +184,26 @@ public class UsersController {
             responseCode = "200",
             description = "Usuário atualizado com sucesso",
             content = @Content(schema = @Schema(implementation = User.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado - token JWT ausente ou inválido",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Usuário não encontrado",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Dados inválidos - requisição malformada",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Erro interno do servidor",
+            content = @Content
         )
     })
     @PutMapping("/{id}")
@@ -133,13 +213,33 @@ public class UsersController {
 
     @Operation(
         summary = "Deletar usuário",
-        description = "Deleta um usuário específico",
+        description = "Realiza soft delete de um usuário específico (marca como 'deleted')",
         security = @SecurityRequirement(name = "Bearer Authentication")
     )
     @ApiResponses(value = {
         @ApiResponse(
             responseCode = "200",
             description = "Usuário deletado com sucesso"
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado - token JWT ausente ou inválido",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Usuário não encontrado",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "ID inválido",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Erro interno do servidor",
+            content = @Content
         )
     })
     @DeleteMapping("/{id}")

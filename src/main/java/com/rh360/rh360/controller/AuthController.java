@@ -33,7 +33,8 @@ public class AuthController {
 
     @Operation(
         summary = "Realizar login",
-        description = "Autentica um usuário e retorna um token JWT"
+        description = "Autentica um usuário com email e senha, retorna um token JWT válido. " +
+                      "Todos os tokens anteriores do usuário são invalidados ao fazer login."
     )
     @ApiResponses(value = {
         @ApiResponse(
@@ -43,8 +44,18 @@ public class AuthController {
         ),
         @ApiResponse(
             responseCode = "401",
-            description = "Credenciais inválidas",
-            content = @Content(schema = @Schema(implementation = String.class))
+            description = "Credenciais inválidas - usuário não encontrado, senha incorreta ou usuário inativo",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Requisição inválida - dados de login faltando ou malformados",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Erro interno do servidor",
+            content = @Content
         )
     })
     @PostMapping("/login")
@@ -60,24 +71,25 @@ public class AuthController {
 
     @Operation(
         summary = "Realizar logout",
-        description = "Invalida o token JWT do usuário autenticado",
+        description = "Invalida o token JWT do usuário autenticado. " +
+                      "O token deve ser enviado no header 'Authorization' no formato 'Bearer {token}'.",
         security = @SecurityRequirement(name = "Bearer Authentication")
     )
     @ApiResponses(value = {
         @ApiResponse(
             responseCode = "200",
-            description = "Logout realizado com sucesso",
-            content = @Content(schema = @Schema(implementation = String.class))
+            description = "Logout realizado com sucesso - token invalidado",
+            content = @Content
         ),
         @ApiResponse(
             responseCode = "401",
-            description = "Token não fornecido ou formato inválido",
-            content = @Content(schema = @Schema(implementation = String.class))
+            description = "Não autenticado - token não fornecido, formato inválido, expirado ou já invalidado",
+            content = @Content
         ),
         @ApiResponse(
             responseCode = "500",
             description = "Erro interno do servidor",
-            content = @Content(schema = @Schema(implementation = String.class))
+            content = @Content
         )
     })
     @PostMapping("/logout")
