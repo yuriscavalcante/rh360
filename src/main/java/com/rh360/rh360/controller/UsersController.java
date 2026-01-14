@@ -1,8 +1,9 @@
 package com.rh360.rh360.controller;
 
-import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -56,7 +57,7 @@ public class UsersController {
 
     @Operation(
         summary = "Listar todos os usuários",
-        description = "Retorna uma lista com todos os usuários cadastrados",
+        description = "Retorna uma lista paginada com todos os usuários cadastrados. Use os parâmetros 'page', 'size' e 'sort' para controlar a paginação",
         security = @SecurityRequirement(name = "Bearer Authentication")
     )
     @ApiResponses(value = {
@@ -67,8 +68,8 @@ public class UsersController {
         )
     })
     @GetMapping
-    public List<UserResponse> findAll() {
-        return service.findAll();
+    public Page<UserResponse> findAll(Pageable pageable) {
+        return service.findAll(pageable);
     }
 
     @Operation(

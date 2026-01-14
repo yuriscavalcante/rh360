@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -31,8 +34,12 @@ public class UsersService {
         return repository.save(user);
     }
 
-    public List<UserResponse> findAll() {
-        return repository.findAll().stream().map(UserResponse::new).collect(Collectors.toList());
+    public Page<UserResponse> findAll(Pageable pageable) {
+        Page<User> userPage = repository.findAll(pageable);
+        List<UserResponse> userResponses = userPage.getContent().stream()
+            .map(UserResponse::new)
+            .collect(Collectors.toList());
+        return new PageImpl<>(userResponses, pageable, userPage.getTotalElements());
     }
 
     public User findById(UUID id) {

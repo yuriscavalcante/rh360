@@ -29,7 +29,7 @@ public class AuthService {
         }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Senha incorreta");
+            throw new RuntimeException("Email ou Senha incorreta");
         }
 
         // Invalidar todos os tokens anteriores do usuário
