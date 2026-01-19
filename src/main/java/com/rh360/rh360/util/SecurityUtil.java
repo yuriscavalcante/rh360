@@ -7,7 +7,14 @@ public class SecurityUtil {
 
     public static UUID getUserId(HttpServletRequest request) {
         Object userId = request.getAttribute("userId");
-        return userId != null ? (UUID) userId : null;
+        if (userId == null) {
+            return null;
+        }
+        try {
+            return (UUID) userId;
+        } catch (ClassCastException e) {
+            return null;
+        }
     }
 
     public static String getEmail(HttpServletRequest request) {
