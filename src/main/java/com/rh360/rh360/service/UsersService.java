@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.rh360.rh360.dto.UserResponse;
 import com.rh360.rh360.entity.User;
@@ -20,12 +21,18 @@ public class UsersService {
 
     private final UsersRepository repository;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final R2StorageService r2StorageService;
 
-    public UsersService(UsersRepository repository) {
+    public UsersService(UsersRepository repository, R2StorageService r2StorageService) {
         this.repository = repository;
+        this.r2StorageService = r2StorageService;
     }
 
     public User create(User user) {
+        return create(user, null);
+    }
+
+    public User create(User user, MultipartFile photo) {
         // Verificar se o email já existe
         if (repository.findByEmail(user.getEmail()).isPresent()) {
             throw new RuntimeException("Email já cadastrado");
@@ -36,7 +43,22 @@ public class UsersService {
         user.setStatus("active");
         user.setRole("user");
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        return repository.save(user);
+        
+        // Salvar usuário primeiro para obter o ID
+        User savedUser = repository.save(user);
+        
+        // Fazer upload da foto se fornecida
+        if (photo != null && !photo.isEmpty()) {
+            try {
+                String photoUrl = r2StorageService.uploadPhoto(photo, savedUser.getId());
+                savedUser.setPhoto(photoUrl);
+                savedUser = repository.save(savedUser);
+            } catch (Exception e) {
+                throw new RuntimeException("Erro ao fazer upload da foto: " + e.getMessage(), e);
+            }
+        }
+        
+        return savedUser;
     }
 
     public Page<UserResponse> findAll(Pageable pageable) {
@@ -52,6 +74,10 @@ public class UsersService {
     }
 
     public User update(UUID id, User user) {
+        return update(id, user, null);
+    }
+
+    public User update(UUID id, User user, MultipartFile photo) {
         User existingUser = findById(id);
         if (existingUser == null) {
             throw new RuntimeException("Usuário não encontrado");
@@ -69,6 +95,27 @@ public class UsersService {
         existingUser.setRole(user.getRole());
         existingUser.setStatus(user.getStatus());
         existingUser.setUpdatedAt(LocalDateTime.now().toString());
+        
+        // Atualizar senha se fornecida
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            existingUser.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
+        
+        // Fazer upload da nova foto se fornecida
+        if (photo != null && !photo.isEmpty()) {
+            try {
+                // Deletar foto antiga se existir
+                if (existingUser.getPhoto() != null && !existingUser.getPhoto().isEmpty()) {
+                    r2StorageService.deletePhoto(existingUser.getPhoto());
+                }
+                // Fazer upload da nova foto
+                String photoUrl = r2StorageService.uploadPhoto(photo, existingUser.getId());
+                existingUser.setPhoto(photoUrl);
+            } catch (Exception e) {
+                throw new RuntimeException("Erro ao fazer upload da foto: " + e.getMessage(), e);
+            }
+        }
+        
         return repository.save(existingUser);
     }
 

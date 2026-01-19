@@ -9,16 +9,19 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.rh360.rh360.dto.UserRequest;
 import com.rh360.rh360.dto.UserResponse;
 import com.rh360.rh360.entity.User;
 import com.rh360.rh360.service.UsersService;
 import com.rh360.rh360.util.SecurityUtil;
 
 import jakarta.servlet.http.HttpServletRequest;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -66,9 +69,23 @@ public class UsersController {
             content = @Content
         )
     })
-    @PostMapping
-    public User create(@RequestBody User user) {
-        return service.create(user);
+    @PostMapping(consumes = {"multipart/form-data"})
+    public User create(
+            @RequestPart("user") String userJson,
+            @RequestPart(value = "photo", required = false) MultipartFile photo) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            UserRequest userRequest = objectMapper.readValue(userJson, UserRequest.class);
+            User user = new User();
+            user.setName(userRequest.getName());
+            user.setEmail(userRequest.getEmail());
+            user.setPassword(userRequest.getPassword());
+            user.setRole(userRequest.getRole());
+            user.setStatus(userRequest.getStatus());
+            return service.create(user, photo);
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao processar requisição: " + e.getMessage(), e);
+        }
     }
 
     @Operation(
@@ -217,9 +234,24 @@ public class UsersController {
             content = @Content
         )
     })
-    @PutMapping("/{id}")
-    public User update(@PathVariable UUID id, @RequestBody User user) {
-        return service.update(id, user);
+    @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
+    public User update(
+            @PathVariable UUID id,
+            @RequestPart("user") String userJson,
+            @RequestPart(value = "photo", required = false) MultipartFile photo) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            UserRequest userRequest = objectMapper.readValue(userJson, UserRequest.class);
+            User user = new User();
+            user.setName(userRequest.getName());
+            user.setEmail(userRequest.getEmail());
+            user.setPassword(userRequest.getPassword());
+            user.setRole(userRequest.getRole());
+            user.setStatus(userRequest.getStatus());
+            return service.update(id, user, photo);
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao processar requisição: " + e.getMessage(), e);
+        }
     }
 
     @Operation(

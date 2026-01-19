@@ -32,6 +32,9 @@ public class UserResponse {
     @Schema(description = "Data de atualização do usuário", example = "2021-01-01")
     private String updatedAt;
 
+    @Schema(description = "URL da foto do usuário", example = "https://pub-xxx.r2.dev/users/photo.jpg")
+    private String photo;
+
     public UserResponse(User user) {
         this.id = user.getId();
         this.name = user.getName();
@@ -40,5 +43,6 @@ public class UserResponse {
         this.status = user.getStatus();
         this.createdAt = user.getCreatedAt();
         this.updatedAt = user.getUpdatedAt();
+        this.photo = user.getPhoto();
     }
 }

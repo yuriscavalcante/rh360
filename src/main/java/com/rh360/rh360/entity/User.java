@@ -46,4 +46,7 @@ public class User {
     @Schema(description = "Data de exclusão do registro (soft delete)")
     private String deletedAt;
 
+    @Schema(description = "URL da foto do usuário", example = "https://pub-xxx.r2.dev/users/photo.jpg")
+    private String photo;
+
 }

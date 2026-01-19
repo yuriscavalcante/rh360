@@ -17,7 +17,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rh360.rh360.dto.UserRequest;
 import com.rh360.rh360.dto.UserResponse;
 import com.rh360.rh360.entity.User;
 import com.rh360.rh360.service.UsersService;
@@ -73,18 +76,29 @@ class UsersControllerTest {
 
     @Test
     @DisplayName("Deve criar usuário com sucesso")
-    void deveCriarUsuarioComSucesso() {
+    void deveCriarUsuarioComSucesso() throws Exception {
         // Arrange
-        when(usersService.create(any(User.class))).thenReturn(user);
+        UserRequest userRequest = new UserRequest();
+        userRequest.setName("João Silva");
+        userRequest.setEmail("joao@teste.com");
+        userRequest.setPassword("senha123");
+        userRequest.setRole("user");
+        userRequest.setStatus("active");
+        
+        ObjectMapper objectMapper = new ObjectMapper();
+        String userJson = objectMapper.writeValueAsString(userRequest);
+        MultipartFile photo = null;
+        
+        when(usersService.create(any(User.class), any())).thenReturn(user);
 
         // Act
-        User result = usersController.create(user);
+        User result = usersController.create(userJson, photo);
 
         // Assert
         assertNotNull(result);
         assertEquals(userId, result.getId());
         assertEquals("João Silva", result.getName());
-        verify(usersService, times(1)).create(user);
+        verify(usersService, times(1)).create(any(User.class), any());
     }
 
     @Test
@@ -157,20 +171,31 @@ class UsersControllerTest {
 
     @Test
     @DisplayName("Deve atualizar usuário com sucesso")
-    void deveAtualizarUsuarioComSucesso() {
+    void deveAtualizarUsuarioComSucesso() throws Exception {
         // Arrange
+        UserRequest userRequest = new UserRequest();
+        userRequest.setName("João Silva Atualizado");
+        userRequest.setEmail("joao.novo@teste.com");
+        userRequest.setPassword("novaSenha123");
+        userRequest.setRole("user");
+        userRequest.setStatus("active");
+        
+        ObjectMapper objectMapper = new ObjectMapper();
+        String userJson = objectMapper.writeValueAsString(userRequest);
+        MultipartFile photo = null;
+        
         User updatedUser = new User();
         updatedUser.setName("João Silva Atualizado");
         updatedUser.setEmail("joao.novo@teste.com");
         
-        when(usersService.update(eq(userId), any(User.class))).thenReturn(updatedUser);
+        when(usersService.update(eq(userId), any(User.class), any())).thenReturn(updatedUser);
 
         // Act
-        User result = usersController.update(userId, updatedUser);
+        User result = usersController.update(userId, userJson, photo);
 
         // Assert
         assertNotNull(result);
-        verify(usersService, times(1)).update(userId, updatedUser);
+        verify(usersService, times(1)).update(eq(userId), any(User.class), any());
     }
 
     @Test
