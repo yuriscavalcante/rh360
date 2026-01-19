@@ -40,13 +40,32 @@ public class R2StorageService {
 
     private S3Client getS3Client() {
         if (s3Client == null) {
+            // Validar credenciais
+            if (accessKeyId == null || accessKeyId.isEmpty()) {
+                throw new RuntimeException("CLOUDFLARE_R2_ACCESS_KEY_ID não configurado");
+            }
+            if (secretAccessKey == null || secretAccessKey.isEmpty()) {
+                throw new RuntimeException("CLOUDFLARE_R2_SECRET_ACCESS_KEY não configurado");
+            }
+            if (endpointUrl == null || endpointUrl.isEmpty()) {
+                throw new RuntimeException("CLOUDFLARE_R2_ENDPOINT_URL não configurado");
+            }
+            if (bucketName == null || bucketName.isEmpty()) {
+                throw new RuntimeException("CLOUDFLARE_R2_BUCKET_NAME não configurado");
+            }
+            
             AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKeyId, secretAccessKey);
             
-            s3Client = S3Client.builder()
-                    .endpointOverride(java.net.URI.create(endpointUrl))
-                    .credentialsProvider(StaticCredentialsProvider.create(credentials))
-                    .region(Region.of("auto"))
-                    .build();
+            try {
+                s3Client = S3Client.builder()
+                        .endpointOverride(java.net.URI.create(endpointUrl))
+                        .credentialsProvider(StaticCredentialsProvider.create(credentials))
+                        .region(Region.of("auto"))
+                        .forcePathStyle(true) // Importante para R2
+                        .build();
+            } catch (Exception e) {
+                throw new RuntimeException("Erro ao criar cliente S3 para R2: " + e.getMessage(), e);
+            }
         }
         return s3Client;
     }
@@ -89,7 +108,25 @@ public class R2StorageService {
                 return endpointUrl.replace("/" + accountId, "") + "/" + bucketName + "/" + fileName;
             }
         } catch (S3Exception e) {
-            throw new RuntimeException("Erro ao fazer upload para R2: " + e.getMessage(), e);
+            String errorCode = e.awsErrorDetails() != null ? e.awsErrorDetails().errorCode() : "UNKNOWN";
+            String errorMessage = e.awsErrorDetails() != null ? e.awsErrorDetails().errorMessage() : e.getMessage();
+            String errorDetails = String.format(
+                "Erro ao fazer upload para R2 - Status: %s, Code: %s, Message: %s",
+                e.statusCode(), errorCode, errorMessage
+            );
+            
+            // Mensagem mais específica para erro 403
+            if (e.statusCode() == 403) {
+                throw new RuntimeException(
+                    "Acesso negado ao R2. Verifique: " +
+                    "1) Se as credenciais (Access Key ID e Secret Access Key) estão corretas; " +
+                    "2) Se o token R2 tem permissões de Object Read e Object Write; " +
+                    "3) Se o bucket '" + bucketName + "' existe e está acessível. " +
+                    "Detalhes: " + errorDetails, e
+                );
+            }
+            
+            throw new RuntimeException("Erro ao fazer upload para R2: " + errorDetails, e);
         } catch (Exception e) {
             throw new RuntimeException("Erro ao processar arquivo: " + e.getMessage(), e);
         }

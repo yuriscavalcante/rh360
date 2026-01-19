@@ -9,8 +9,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -21,7 +22,6 @@ import com.rh360.rh360.service.UsersService;
 import com.rh360.rh360.util.SecurityUtil;
 
 import jakarta.servlet.http.HttpServletRequest;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -44,7 +44,8 @@ public class UsersController {
 
     @Operation(
         summary = "Criar novo usuário",
-        description = "Cria um novo usuário no sistema. Os campos 'role' e 'status' são definidos automaticamente se não fornecidos. " +
+        description = "Cria um novo usuário no sistema. Aceita JSON (application/json) ou multipart/form-data. " +
+                      "Os campos 'role' e 'status' são definidos automaticamente se não fornecidos. " +
                       "O email deve ser único no sistema."
     )
     @ApiResponses(value = {
@@ -69,23 +70,32 @@ public class UsersController {
             content = @Content
         )
     })
+    @PostMapping(consumes = {"application/json"})
+    public User create(@RequestBody UserRequest userRequest) {
+        User user = new User();
+        user.setName(userRequest.getName());
+        user.setEmail(userRequest.getEmail());
+        user.setPassword(userRequest.getPassword());
+        user.setRole(userRequest.getRole());
+        user.setStatus(userRequest.getStatus());
+        return service.create(user, null);
+    }
+
     @PostMapping(consumes = {"multipart/form-data"})
     public User create(
-            @RequestPart("user") String userJson,
-            @RequestPart(value = "photo", required = false) MultipartFile photo) {
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            UserRequest userRequest = objectMapper.readValue(userJson, UserRequest.class);
-            User user = new User();
-            user.setName(userRequest.getName());
-            user.setEmail(userRequest.getEmail());
-            user.setPassword(userRequest.getPassword());
-            user.setRole(userRequest.getRole());
-            user.setStatus(userRequest.getStatus());
-            return service.create(user, photo);
-        } catch (Exception e) {
-            throw new RuntimeException("Erro ao processar requisição: " + e.getMessage(), e);
-        }
+            @RequestParam("name") String name,
+            @RequestParam("email") String email,
+            @RequestParam("password") String password,
+            @RequestParam(value = "role", required = false) String role,
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "photo", required = false) MultipartFile photo) {
+        User user = new User();
+        user.setName(name);
+        user.setEmail(email);
+        user.setPassword(password);
+        user.setRole(role);
+        user.setStatus(status);
+        return service.create(user, photo);
     }
 
     @Operation(
@@ -199,7 +209,8 @@ public class UsersController {
 
     @Operation(
         summary = "Atualizar usuário",
-        description = "Atualiza os dados de um usuário específico. O email deve ser único no sistema.",
+        description = "Atualiza os dados de um usuário específico. Aceita JSON (application/json) ou multipart/form-data. " +
+                      "O email deve ser único no sistema.",
         security = @SecurityRequirement(name = "Bearer Authentication")
     )
     @ApiResponses(value = {
@@ -234,24 +245,33 @@ public class UsersController {
             content = @Content
         )
     })
+    @PutMapping(value = "/{id}", consumes = {"application/json"})
+    public User update(@PathVariable UUID id, @RequestBody UserRequest userRequest) {
+        User user = new User();
+        user.setName(userRequest.getName());
+        user.setEmail(userRequest.getEmail());
+        user.setPassword(userRequest.getPassword());
+        user.setRole(userRequest.getRole());
+        user.setStatus(userRequest.getStatus());
+        return service.update(id, user, null);
+    }
+
     @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
     public User update(
             @PathVariable UUID id,
-            @RequestPart("user") String userJson,
-            @RequestPart(value = "photo", required = false) MultipartFile photo) {
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            UserRequest userRequest = objectMapper.readValue(userJson, UserRequest.class);
-            User user = new User();
-            user.setName(userRequest.getName());
-            user.setEmail(userRequest.getEmail());
-            user.setPassword(userRequest.getPassword());
-            user.setRole(userRequest.getRole());
-            user.setStatus(userRequest.getStatus());
-            return service.update(id, user, photo);
-        } catch (Exception e) {
-            throw new RuntimeException("Erro ao processar requisição: " + e.getMessage(), e);
-        }
+            @RequestParam("name") String name,
+            @RequestParam("email") String email,
+            @RequestParam(value = "password", required = false) String password,
+            @RequestParam(value = "role", required = false) String role,
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "photo", required = false) MultipartFile photo) {
+        User user = new User();
+        user.setName(name);
+        user.setEmail(email);
+        user.setPassword(password);
+        user.setRole(role);
+        user.setStatus(status);
+        return service.update(id, user, photo);
     }
 
     @Operation(
