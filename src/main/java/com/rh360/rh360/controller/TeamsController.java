@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.rh360.rh360.dto.TeamRequest;
 import com.rh360.rh360.dto.TeamResponse;
+import com.rh360.rh360.dto.UserResponse;
 import com.rh360.rh360.service.TeamService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -107,6 +108,42 @@ public class TeamsController {
     @GetMapping
     public Page<TeamResponse> findAll(Pageable pageable) {
         return service.findAll(pageable);
+    }
+
+    @Operation(
+        summary = "Listar equipes por usuário",
+        description = "Retorna uma lista paginada com todas as equipes às quais um usuário específico pertence. " +
+                      "Parâmetros de query aceitos: " +
+                      "'page' (número da página, começa em 0, padrão: 0), " +
+                      "'size' (tamanho da página, padrão: 20), " +
+                      "'sort' (campo de ordenação no formato 'campo,direção', exemplo: 'name,asc' ou 'createdAt,desc').",
+        security = @SecurityRequirement(name = "Bearer Authentication")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Lista de equipes retornada com sucesso",
+            content = @Content(schema = @Schema(implementation = Page.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado - token JWT ausente ou inválido",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Parâmetros de paginação inválidos",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Erro interno do servidor",
+            content = @Content
+        )
+    })
+    @GetMapping("/users/{userId}")
+    public Page<TeamResponse> findByUserId(@PathVariable UUID userId, Pageable pageable) {
+        return service.findByUserId(userId, pageable);
     }
 
     @Operation(
@@ -284,5 +321,46 @@ public class TeamsController {
     @DeleteMapping("/{teamId}/users/{userId}")
     public void removeUserFromTeam(@PathVariable UUID teamId, @PathVariable UUID userId) {
         service.removeUserFromTeam(teamId, userId);
+    }
+
+    @Operation(
+        summary = "Listar usuários de uma equipe",
+        description = "Retorna uma lista paginada com todos os usuários associados a uma equipe específica. " +
+                      "Parâmetros de query aceitos: " +
+                      "'page' (número da página, começa em 0, padrão: 0), " +
+                      "'size' (tamanho da página, padrão: 20), " +
+                      "'sort' (campo de ordenação no formato 'campo,direção', exemplo: 'name,asc' ou 'email,desc').",
+        security = @SecurityRequirement(name = "Bearer Authentication")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Lista de usuários retornada com sucesso",
+            content = @Content(schema = @Schema(implementation = Page.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado - token JWT ausente ou inválido",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Equipe não encontrada",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Parâmetros de paginação inválidos",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Erro interno do servidor",
+            content = @Content
+        )
+    })
+    @GetMapping("/{teamId}/users")
+    public Page<UserResponse> findUsersByTeamId(@PathVariable UUID teamId, Pageable pageable) {
+        return service.findUsersByTeamId(teamId, pageable);
     }
 }
