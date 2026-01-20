@@ -304,7 +304,8 @@ public class TimeClockController {
         summary = "Gerar QR code para bater ponto via mobile",
         description = "Gera um QR code com um token temporário que permite ao usuário bater ponto através do celular. " +
                       "O QR code contém uma URL que abre a câmera do celular para capturar a foto e bater o ponto. " +
-                      "O token do QR code expira em 15 minutos por segurança.",
+                      "O token do QR code expira em 15 minutos por segurança. " +
+                      "Aceita parâmetros opcionais: 'id' (ID customizado) e 'path' (caminho para redirecionamento).",
         security = @SecurityRequirement(name = "Bearer Authentication")
     )
     @ApiResponses(value = {
@@ -330,7 +331,10 @@ public class TimeClockController {
         )
     })
     @GetMapping("/qr-code")
-    public ResponseEntity<?> generateQrCode(HttpServletRequest request) {
+    public ResponseEntity<?> generateQrCode(
+            @RequestParam(value = "id", required = false) String id,
+            @RequestParam(value = "path", required = false) String path,
+            HttpServletRequest request) {
         UUID userId = SecurityUtil.getUserId(request);
         if (userId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -353,7 +357,14 @@ public class TimeClockController {
             tokenService.saveQrCodeToken(qrToken, userId);
 
             // Gerar URL do QR code
-            String qrCodeUrl = qrCodeService.generateQrCodeUrl(qrToken);
+            String qrCodeUrl;
+            if (id != null && !id.isEmpty() && path != null && !path.isEmpty()) {
+                // Usar ID e path customizados
+                qrCodeUrl = qrCodeService.generateQrCodeUrl(id, path, qrToken);
+            } else {
+                // Usar comportamento padrão (compatibilidade com versão anterior)
+                qrCodeUrl = qrCodeService.generateQrCodeUrl(qrToken);
+            }
 
             // Gerar QR code em Base64
             String qrCodeBase64 = qrCodeService.generateQrCodeBase64(qrCodeUrl);

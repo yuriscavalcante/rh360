@@ -61,4 +61,32 @@ public class QrCodeService {
     public String generateQrCodeUrl(String qrToken) {
         return frontendUrl + "/timeclock/mobile?token=" + qrToken;
     }
+
+    /**
+     * Gera a URL que será usada no QR code com ID e path customizados
+     * 
+     * @param id ID que será incluído na URL
+     * @param path Path para onde o QR code será redirecionado
+     * @param qrToken Token temporário para autenticação via QR code (opcional)
+     * @return URL completa para acessar via mobile
+     */
+    public String generateQrCodeUrl(String id, String path, String qrToken) {
+        // Garantir que o path começa com /
+        String normalizedPath = path.startsWith("/") ? path : "/" + path;
+        
+        // Construir URL base
+        String baseUrl = frontendUrl.endsWith("/") 
+            ? frontendUrl.substring(0, frontendUrl.length() - 1) 
+            : frontendUrl;
+        
+        // Construir URL completa com id e path
+        String url = baseUrl + normalizedPath + "?id=" + id;
+        
+        // Adicionar token se fornecido
+        if (qrToken != null && !qrToken.isEmpty()) {
+            url += "&token=" + qrToken;
+        }
+        
+        return url;
+    }
 }
