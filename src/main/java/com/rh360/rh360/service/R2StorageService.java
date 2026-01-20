@@ -57,13 +57,16 @@ public class R2StorageService {
             AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKeyId, secretAccessKey);
             
             try {
+                System.out.println("Criando cliente S3 com endpoint: " + endpointUrl);
                 s3Client = S3Client.builder()
                         .endpointOverride(java.net.URI.create(endpointUrl))
                         .credentialsProvider(StaticCredentialsProvider.create(credentials))
                         .region(Region.of("auto"))
                         .forcePathStyle(true) // Importante para R2
                         .build();
+                System.out.println("Cliente S3 criado com sucesso para bucket: " + bucketName);
             } catch (Exception e) {
+                System.err.println("ERRO ao criar cliente S3: " + e.getMessage());
                 throw new RuntimeException("Erro ao criar cliente S3 para R2: " + e.getMessage(), e);
             }
         }
@@ -71,6 +74,18 @@ public class R2StorageService {
     }
 
     public String uploadPhoto(MultipartFile file, UUID userId) {
+        // Log de todas as configurações do R2
+        System.out.println("==========================================");
+        System.out.println("CONFIGURAÇÕES R2 CARREGADAS:");
+        System.out.println("==========================================");
+        System.out.println("cloudflare.r2.account-id: " + (accountId != null && !accountId.isEmpty() ? accountId : "(VAZIO)"));
+        System.out.println("cloudflare.r2.access-key-id: " + (accessKeyId != null && !accessKeyId.isEmpty() ? accessKeyId.substring(0, Math.min(8, accessKeyId.length())) + "..." : "(VAZIO)"));
+        System.out.println("cloudflare.r2.secret-access-key: " + (secretAccessKey != null && !secretAccessKey.isEmpty() ? secretAccessKey.substring(0, Math.min(8, secretAccessKey.length())) + "..." : "(VAZIO)"));
+        System.out.println("cloudflare.r2.bucket-name: " + (bucketName != null && !bucketName.isEmpty() ? bucketName : "(VAZIO)"));
+        System.out.println("cloudflare.r2.endpoint-url: " + (endpointUrl != null && !endpointUrl.isEmpty() ? endpointUrl : "(VAZIO)"));
+        System.out.println("cloudflare.r2.public-url: " + (publicUrl != null && !publicUrl.isEmpty() ? publicUrl : "(VAZIO)"));
+        System.out.println("==========================================");
+        
         if (file == null || file.isEmpty()) {
             throw new RuntimeException("Arquivo não pode ser vazio");
         }
