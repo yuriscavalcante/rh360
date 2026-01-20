@@ -30,6 +30,9 @@ public class TokenService {
     @Value("${jwt.expiration}")
     private Long expiration;
 
+    @Value("${jwt.qrcode.expiration:900000}")
+    private Long qrCodeExpiration; // Padrão: 15 minutos (900000 ms)
+
     @Autowired
     private TokenRepository tokenRepository;
 
@@ -144,5 +147,53 @@ public class TokenService {
 
     public Optional<Token> findActiveToken(String token) {
         return tokenRepository.findByTokenAndActiveTrue(token);
+    }
+
+    /**
+     * Gera um token temporário para QR code com expiração reduzida
+     * Este token é usado apenas para autenticação via QR code no mobile
+     * 
+     * @param userId ID do usuário
+     * @param email Email do usuário
+     * @param role Role do usuário
+     * @return Token JWT temporário
+     */
+    public String generateQrCodeToken(UUID userId, String email, String role) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", userId.toString());
+        claims.put("email", email);
+        claims.put("role", role);
+        claims.put("type", "qrcode"); // Marca o token como tipo QR code
+        
+        Date issuedAt = new Date(System.currentTimeMillis());
+        Date expirationDate = new Date(System.currentTimeMillis() + qrCodeExpiration);
+        
+        return Jwts.builder()
+                .claims(claims)
+                .subject(email)
+                .issuedAt(issuedAt)
+                .expiration(expirationDate)
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    /**
+     * Salva um token de QR code no banco de dados
+     * 
+     * @param tokenString Token JWT
+     * @param userId ID do usuário
+     * @return Token salvo
+     */
+    public Token saveQrCodeToken(String tokenString, UUID userId) {
+        return saveToken(tokenString, userId);
+    }
+
+    /**
+     * Retorna o tempo de expiração dos tokens de QR code em milissegundos
+     * 
+     * @return Tempo de expiração em milissegundos
+     */
+    public Long getQrCodeExpiration() {
+        return qrCodeExpiration;
     }
 }

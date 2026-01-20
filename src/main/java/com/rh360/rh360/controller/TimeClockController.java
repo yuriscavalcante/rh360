@@ -13,8 +13,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.rh360.rh360.dto.QrCodeResponse;
 import com.rh360.rh360.dto.TimeClockResponse;
+import com.rh360.rh360.service.QrCodeService;
 import com.rh360.rh360.service.TimeClockService;
+import com.rh360.rh360.service.TokenService;
 import com.rh360.rh360.service.UsersService;
 import com.rh360.rh360.entity.User;
 import com.rh360.rh360.util.SecurityUtil;
@@ -36,10 +39,15 @@ public class TimeClockController {
 
     private final TimeClockService timeClockService;
     private final UsersService usersService;
+    private final QrCodeService qrCodeService;
+    private final TokenService tokenService;
 
-    public TimeClockController(TimeClockService timeClockService, UsersService usersService) {
+    public TimeClockController(TimeClockService timeClockService, UsersService usersService, 
+                              QrCodeService qrCodeService, TokenService tokenService) {
         this.timeClockService = timeClockService;
         this.usersService = usersService;
+        this.qrCodeService = qrCodeService;
+        this.tokenService = tokenService;
     }
 
     @Operation(
@@ -290,5 +298,161 @@ public class TimeClockController {
         }
 
         return getTimeClocksByUserId(userId, request);
+    }
+
+    @Operation(
+        summary = "Gerar QR code para bater ponto via mobile",
+        description = "Gera um QR code com um token temporário que permite ao usuário bater ponto através do celular. " +
+                      "O QR code contém uma URL que abre a câmera do celular para capturar a foto e bater o ponto. " +
+                      "O token do QR code expira em 15 minutos por segurança.",
+        security = @SecurityRequirement(name = "Bearer Authentication")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "QR code gerado com sucesso",
+            content = @Content(schema = @Schema(implementation = QrCodeResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado - token JWT ausente ou inválido",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Usuário não encontrado",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Erro interno do servidor ao gerar QR code",
+            content = @Content
+        )
+    })
+    @GetMapping("/qr-code")
+    public ResponseEntity<?> generateQrCode(HttpServletRequest request) {
+        UUID userId = SecurityUtil.getUserId(request);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body("{\"error\":\"Usuário não autenticado\"}");
+        }
+
+        try {
+            // Buscar dados do usuário
+            User user = usersService.findById(userId);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("{\"error\":\"Usuário não encontrado\"}");
+            }
+
+            String email = SecurityUtil.getEmail(request);
+            String role = SecurityUtil.getRole(request);
+
+            // Gerar token temporário para QR code
+            String qrToken = tokenService.generateQrCodeToken(userId, email, role);
+            tokenService.saveQrCodeToken(qrToken, userId);
+
+            // Gerar URL do QR code
+            String qrCodeUrl = qrCodeService.generateQrCodeUrl(qrToken);
+
+            // Gerar QR code em Base64
+            String qrCodeBase64 = qrCodeService.generateQrCodeBase64(qrCodeUrl);
+
+            // Calcular tempo de expiração em minutos
+            Long expiresInMinutes = tokenService.getQrCodeExpiration() / 60000; // converter ms para minutos
+
+            QrCodeResponse response = new QrCodeResponse();
+            response.setQrCodeBase64(qrCodeBase64);
+            response.setUrl(qrCodeUrl);
+            response.setToken(qrToken);
+            response.setExpiresInMinutes(expiresInMinutes);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("{\"error\":\"Erro ao gerar QR code: " + e.getMessage() + "\"}");
+        }
+    }
+
+    @Operation(
+        summary = "Bater ponto via mobile (QR code)",
+        description = "Endpoint público para bater ponto usando o token do QR code. " +
+                      "Este endpoint permite que o usuário bata ponto através do celular após escanear o QR code. " +
+                      "A foto será validada usando reconhecimento facial antes de registrar o ponto.",
+        security = @SecurityRequirement(name = "")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Ponto registrado com sucesso",
+            content = @Content(schema = @Schema(implementation = TimeClockResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Requisição inválida - token inválido, arquivo de imagem ausente ou face não validada",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Token do QR code inválido ou expirado",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Erro interno do servidor ou erro na comunicação com CompreFace",
+            content = @Content
+        )
+    })
+    @PostMapping("/mobile/{qrToken}")
+    public ResponseEntity<?> clockInMobile(
+            @PathVariable String qrToken,
+            @RequestParam("photo") MultipartFile photo) {
+        
+        try {
+            // Validar o token do QR code
+            if (!tokenService.validateToken(qrToken)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("{\"error\":\"Token do QR code inválido ou expirado\"}");
+            }
+
+            // Extrair userId do token
+            UUID userId = tokenService.extractUserId(qrToken);
+            
+            // Verificar se o usuário existe
+            User user = usersService.findById(userId);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("{\"error\":\"Usuário não encontrado\"}");
+            }
+
+            // Verificar se o arquivo foi enviado
+            if (photo == null || photo.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("{\"error\":\"Arquivo de imagem é obrigatório\"}");
+            }
+
+            // Bater ponto (valida a face internamente)
+            TimeClockResponse response = timeClockService.clockIn(userId, photo);
+            
+            // Desativar o token do QR code após uso (opcional, por segurança)
+            // tokenService.deactivateToken(qrToken);
+            
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            // Erro de validação facial ou usuário não encontrado
+            if (e.getMessage().contains("não encontrado") || e.getMessage().contains("obrigatória")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("{\"error\":\"" + e.getMessage() + "\"}");
+            } else if (e.getMessage().contains("não foi validada") || e.getMessage().contains("Face não validada")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("{\"error\":\"" + e.getMessage() + "\"}");
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("{\"error\":\"Erro ao processar registro de ponto: " + e.getMessage() + "\"}");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("{\"error\":\"Erro ao processar registro de ponto: " + e.getMessage() + "\"}");
+        }
     }
 }
