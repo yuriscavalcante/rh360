@@ -17,6 +17,6 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRATION=${JWT_EXPIRATION}
       # Configurações do CompreFace
-      - COMPREFACE_API_URL=${COMPREFACE_API_URL:http://compreface-api:8000}
-      - COMPREFACE_API_KEY=${COMPREFACE_API_KEY:}
+      - COMPREFACE_API_URL=${COMPREFACE_API_URL:-http://compreface-api:8000}
+      - COMPREFACE_API_KEY=${COMPREFACE_API_KEY:-}
     restart: unless-stopped
