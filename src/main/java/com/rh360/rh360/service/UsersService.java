@@ -11,6 +11,8 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.rh360.rh360.dto.UserResponse;
 import com.rh360.rh360.entity.User;
@@ -19,13 +21,18 @@ import com.rh360.rh360.repository.UsersRepository;
 @Service
 public class UsersService {
 
+    private static final Logger logger = LoggerFactory.getLogger(UsersService.class);
+    
     private final UsersRepository repository;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final R2StorageService r2StorageService;
+    private final CompreFaceService compreFaceService;
 
-    public UsersService(UsersRepository repository, R2StorageService r2StorageService) {
+    public UsersService(UsersRepository repository, R2StorageService r2StorageService, 
+                       CompreFaceService compreFaceService) {
         this.repository = repository;
         this.r2StorageService = r2StorageService;
+        this.compreFaceService = compreFaceService;
     }
 
     public User create(User user) {
@@ -47,14 +54,35 @@ public class UsersService {
         // Salvar usuário primeiro para obter o ID
         User savedUser = repository.save(user);
         
+        logger.info("Usuário {} criado com sucesso. Foto fornecida: {}", savedUser.getId(), (photo != null && !photo.isEmpty()));
+        
         // Fazer upload da foto se fornecida
         if (photo != null && !photo.isEmpty()) {
+            // Primeiro tentar registrar no CompreFace (não bloqueia se falhar)
+            logger.info("Tentando registrar face no CompreFace para usuário {}", savedUser.getId());
             try {
+                boolean faceRegistered = compreFaceService.addFace(savedUser.getId(), photo);
+                if (faceRegistered) {
+                    logger.info("✓ Face do usuário {} registrada com SUCESSO no CompreFace", savedUser.getId());
+                } else {
+                    logger.warn("✗ Aviso: Face do usuário {} NÃO foi registrada no CompreFace (retornou false)", savedUser.getId());
+                }
+            } catch (Exception e) {
+                // Log do erro mas NÃO interrompe o fluxo - a face poderá ser registrada posteriormente
+                logger.error("✗ ERRO ao registrar face do usuário {} no CompreFace (continuando mesmo assim): {}", savedUser.getId(), e.getMessage(), e);
+            }
+            
+            // SEMPRE fazer upload para R2, independente do resultado do CompreFace
+            try {
+                logger.info("Fazendo upload da foto para R2 para usuário {}", savedUser.getId());
                 String photoUrl = r2StorageService.uploadPhoto(photo, savedUser.getId());
                 savedUser.setPhoto(photoUrl);
                 savedUser = repository.save(savedUser);
+                logger.info("✓ Foto do usuário {} salva no R2 com sucesso: {}", savedUser.getId(), photoUrl);
             } catch (Exception e) {
-                throw new RuntimeException("Erro ao fazer upload da foto: " + e.getMessage(), e);
+                // Este erro SIM deve interromper, pois a foto é essencial
+                logger.error("✗ ERRO CRÍTICO ao fazer upload da foto para R2: {}", e.getMessage(), e);
+                throw new RuntimeException("Erro ao fazer upload da foto para R2: " + e.getMessage(), e);
             }
         }
         
@@ -103,16 +131,41 @@ public class UsersService {
         
         // Fazer upload da nova foto se fornecida
         if (photo != null && !photo.isEmpty()) {
+            // Primeiro tentar atualizar no CompreFace (não bloqueia se falhar)
+            logger.info("Tentando atualizar face no CompreFace para usuário {}", existingUser.getId());
             try {
+                boolean faceRegistered = compreFaceService.addFace(existingUser.getId(), photo);
+                if (faceRegistered) {
+                    logger.info("✓ Face do usuário {} atualizada com SUCESSO no CompreFace", existingUser.getId());
+                } else {
+                    logger.warn("✗ Aviso: Face do usuário {} NÃO foi atualizada no CompreFace (retornou false)", existingUser.getId());
+                }
+            } catch (Exception e) {
+                // Log do erro mas NÃO interrompe o fluxo - a face poderá ser registrada posteriormente
+                logger.error("✗ ERRO ao atualizar face do usuário {} no CompreFace (continuando mesmo assim): {}", existingUser.getId(), e.getMessage(), e);
+            }
+            
+            // SEMPRE fazer upload para R2, independente do resultado do CompreFace
+            try {
+                logger.info("Fazendo upload da nova foto para R2 para usuário {}", existingUser.getId());
                 // Deletar foto antiga se existir
                 if (existingUser.getPhoto() != null && !existingUser.getPhoto().isEmpty()) {
-                    r2StorageService.deletePhoto(existingUser.getPhoto());
+                    try {
+                        r2StorageService.deletePhoto(existingUser.getPhoto());
+                        logger.info("Foto antiga do usuário {} deletada do R2", existingUser.getId());
+                    } catch (Exception e) {
+                        logger.warn("Aviso: Não foi possível deletar foto antiga do R2: {}", e.getMessage());
+                        // Não bloqueia se não conseguir deletar
+                    }
                 }
-                // Fazer upload da nova foto
+                // Fazer upload da nova foto para R2
                 String photoUrl = r2StorageService.uploadPhoto(photo, existingUser.getId());
                 existingUser.setPhoto(photoUrl);
+                logger.info("✓ Nova foto do usuário {} salva no R2 com sucesso: {}", existingUser.getId(), photoUrl);
             } catch (Exception e) {
-                throw new RuntimeException("Erro ao fazer upload da foto: " + e.getMessage(), e);
+                // Este erro SIM deve interromper, pois a foto é essencial
+                logger.error("✗ ERRO CRÍTICO ao fazer upload da foto para R2: {}", e.getMessage(), e);
+                throw new RuntimeException("Erro ao fazer upload da foto para R2: " + e.getMessage(), e);
             }
         }
         

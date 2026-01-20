@@ -1,6 +1,7 @@
-version: '3.8'
+﻿version: '3.8'
 
 services:
+  # API Java
   rh360:
     build: .
     container_name: rh360-api
@@ -15,10 +16,7 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRATION=${JWT_EXPIRATION}
+      # Configurações do CompreFace
+      - COMPREFACE_API_URL=${COMPREFACE_API_URL:http://compreface-api:8000}
+      - COMPREFACE_API_KEY=${COMPREFACE_API_KEY:}
     restart: unless-stopped
-    networks:
-      - rh360-network
-
-networks:
-  rh360-network:
-    driver: bridge

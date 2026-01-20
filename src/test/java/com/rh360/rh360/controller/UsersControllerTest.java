@@ -86,7 +86,7 @@ class UsersControllerTest {
         when(usersService.create(any(User.class), any())).thenReturn(user);
 
         // Act
-        User result = usersController.create(userRequest);
+        UserResponse result = usersController.create(userRequest);
 
         // Assert
         assertNotNull(result);
@@ -118,7 +118,7 @@ class UsersControllerTest {
         when(usersService.findById(userId)).thenReturn(user);
 
         // Act
-        User result = usersController.findById(userId);
+        UserResponse result = usersController.findById(userId);
 
         // Assert
         assertNotNull(result);
@@ -135,7 +135,7 @@ class UsersControllerTest {
             when(usersService.findById(userId)).thenReturn(user);
 
             // Act
-            User result = usersController.getCurrentUser(request);
+            UserResponse result = usersController.getCurrentUser(request);
 
             // Assert
             assertNotNull(result);
@@ -175,16 +175,19 @@ class UsersControllerTest {
         userRequest.setStatus("active");
         
         User updatedUser = new User();
+        updatedUser.setId(userId);
         updatedUser.setName("João Silva Atualizado");
         updatedUser.setEmail("joao.novo@teste.com");
         
         when(usersService.update(eq(userId), any(User.class), any())).thenReturn(updatedUser);
 
         // Act
-        User result = usersController.update(userId, userRequest);
+        UserResponse result = usersController.update(userId, userRequest);
 
         // Assert
         assertNotNull(result);
+        assertEquals(userId, result.getId());
+        assertEquals("João Silva Atualizado", result.getName());
         verify(usersService, times(1)).update(eq(userId), any(User.class), any());
     }
 

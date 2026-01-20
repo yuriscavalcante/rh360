@@ -52,7 +52,7 @@ public class UsersController {
         @ApiResponse(
             responseCode = "200",
             description = "Usuário criado com sucesso",
-            content = @Content(schema = @Schema(implementation = User.class))
+            content = @Content(schema = @Schema(implementation = UserResponse.class))
         ),
         @ApiResponse(
             responseCode = "400",
@@ -71,18 +71,19 @@ public class UsersController {
         )
     })
     @PostMapping(consumes = {"application/json"})
-    public User create(@RequestBody UserRequest userRequest) {
+    public UserResponse create(@RequestBody UserRequest userRequest) {
         User user = new User();
         user.setName(userRequest.getName());
         user.setEmail(userRequest.getEmail());
         user.setPassword(userRequest.getPassword());
         user.setRole(userRequest.getRole());
         user.setStatus(userRequest.getStatus());
-        return service.create(user, null);
+        User createdUser = service.create(user, null);
+        return new UserResponse(createdUser);
     }
 
     @PostMapping(consumes = {"multipart/form-data"})
-    public User create(
+    public UserResponse create(
             @RequestParam("name") String name,
             @RequestParam("email") String email,
             @RequestParam("password") String password,
@@ -95,7 +96,8 @@ public class UsersController {
         user.setPassword(password);
         user.setRole(role);
         user.setStatus(status);
-        return service.create(user, photo);
+        User createdUser = service.create(user, photo);
+        return new UserResponse(createdUser);
     }
 
     @Operation(
@@ -143,7 +145,7 @@ public class UsersController {
         @ApiResponse(
             responseCode = "200",
             description = "Usuário encontrado",
-            content = @Content(schema = @Schema(implementation = User.class))
+            content = @Content(schema = @Schema(implementation = UserResponse.class))
         ),
         @ApiResponse(
             responseCode = "401",
@@ -167,8 +169,12 @@ public class UsersController {
         )
     })
     @GetMapping("/{id}")
-    public User findById(@PathVariable UUID id) {
-        return service.findById(id);
+    public UserResponse findById(@PathVariable UUID id) {
+        User user = service.findById(id);
+        if (user == null) {
+            throw new RuntimeException("Usuário não encontrado");
+        }
+        return new UserResponse(user);
     }
 
     @Operation(
@@ -180,7 +186,7 @@ public class UsersController {
         @ApiResponse(
             responseCode = "200",
             description = "Dados do usuário atual retornados com sucesso",
-            content = @Content(schema = @Schema(implementation = User.class))
+            content = @Content(schema = @Schema(implementation = UserResponse.class))
         ),
         @ApiResponse(
             responseCode = "401",
@@ -199,12 +205,16 @@ public class UsersController {
         )
     })
     @GetMapping("/me")
-    public User getCurrentUser(HttpServletRequest request) {
+    public UserResponse getCurrentUser(HttpServletRequest request) {
         UUID userId = SecurityUtil.getUserId(request);
         if (userId == null) {
             throw new RuntimeException("Usuário não autenticado");
         }
-        return service.findById(userId);
+        User user = service.findById(userId);
+        if (user == null) {
+            throw new RuntimeException("Usuário não encontrado");
+        }
+        return new UserResponse(user);
     }
 
     @Operation(
@@ -217,7 +227,7 @@ public class UsersController {
         @ApiResponse(
             responseCode = "200",
             description = "Usuário atualizado com sucesso",
-            content = @Content(schema = @Schema(implementation = User.class))
+            content = @Content(schema = @Schema(implementation = UserResponse.class))
         ),
         @ApiResponse(
             responseCode = "401",
@@ -246,18 +256,19 @@ public class UsersController {
         )
     })
     @PutMapping(value = "/{id}", consumes = {"application/json"})
-    public User update(@PathVariable UUID id, @RequestBody UserRequest userRequest) {
+    public UserResponse update(@PathVariable UUID id, @RequestBody UserRequest userRequest) {
         User user = new User();
         user.setName(userRequest.getName());
         user.setEmail(userRequest.getEmail());
         user.setPassword(userRequest.getPassword());
         user.setRole(userRequest.getRole());
         user.setStatus(userRequest.getStatus());
-        return service.update(id, user, null);
+        User updatedUser = service.update(id, user, null);
+        return new UserResponse(updatedUser);
     }
 
     @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
-    public User update(
+    public UserResponse update(
             @PathVariable UUID id,
             @RequestParam("name") String name,
             @RequestParam("email") String email,
@@ -271,7 +282,8 @@ public class UsersController {
         user.setPassword(password);
         user.setRole(role);
         user.setStatus(status);
-        return service.update(id, user, photo);
+        User updatedUser = service.update(id, user, photo);
+        return new UserResponse(updatedUser);
     }
 
     @Operation(
