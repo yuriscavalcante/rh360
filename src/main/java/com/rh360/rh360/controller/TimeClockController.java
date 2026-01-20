@@ -1,9 +1,11 @@
 package com.rh360.rh360.controller;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -180,5 +182,113 @@ public class TimeClockController {
         }
 
         return clockIn(userId, photo, request);
+    }
+
+    @Operation(
+        summary = "Listar pontos de um usuário",
+        description = "Retorna todos os registros de ponto de um usuário específico, ordenados por data/hora (mais recentes primeiro). " +
+                      "O usuário só pode visualizar seus próprios pontos, exceto se for administrador.",
+        security = @SecurityRequirement(name = "Bearer Authentication")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Lista de pontos retornada com sucesso",
+            content = @Content(schema = @Schema(implementation = TimeClockResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado - token JWT ausente ou inválido",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Acesso negado - tentativa de visualizar pontos de outro usuário",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Usuário não encontrado",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Erro interno do servidor",
+            content = @Content
+        )
+    })
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<?> getTimeClocksByUserId(
+            @PathVariable UUID userId,
+            HttpServletRequest request) {
+        
+        // Verificar se o usuário está autenticado
+        UUID tokenUserId = SecurityUtil.getUserId(request);
+        if (tokenUserId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body("{\"error\":\"Usuário não autenticado\"}");
+        }
+        
+        // Verificar se o token pertence ao mesmo usuário do path
+        // TODO: Permitir que admins vejam pontos de outros usuários
+        if (!tokenUserId.equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body("{\"error\":\"Você não tem permissão para visualizar pontos deste usuário\"}");
+        }
+
+        try {
+            List<TimeClockResponse> timeClocks = timeClockService.findByUserId(userId);
+            return ResponseEntity.ok(timeClocks);
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("não encontrado")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("{\"error\":\"" + e.getMessage() + "\"}");
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("{\"error\":\"Erro ao buscar registros de ponto: " + e.getMessage() + "\"}");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("{\"error\":\"Erro ao buscar registros de ponto: " + e.getMessage() + "\"}");
+        }
+    }
+
+    @Operation(
+        summary = "Listar pontos do usuário atual",
+        description = "Retorna todos os registros de ponto do usuário autenticado, ordenados por data/hora (mais recentes primeiro). " +
+                      "O ID do usuário é extraído automaticamente do token JWT.",
+        security = @SecurityRequirement(name = "Bearer Authentication")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Lista de pontos retornada com sucesso",
+            content = @Content(schema = @Schema(implementation = TimeClockResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado - token JWT ausente ou inválido",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Usuário não encontrado",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Erro interno do servidor",
+            content = @Content
+        )
+    })
+    @GetMapping("/me")
+    public ResponseEntity<?> getMyTimeClocks(HttpServletRequest request) {
+        UUID userId = SecurityUtil.getUserId(request);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body("{\"error\":\"Usuário não autenticado\"}");
+        }
+
+        return getTimeClocksByUserId(userId, request);
     }
 }

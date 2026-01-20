@@ -1,7 +1,9 @@
 package com.rh360.rh360.service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,5 +95,29 @@ public class TimeClockService {
         response.setConfidence(verifyResponse.getConfidence());
 
         return response;
+    }
+
+    /**
+     * Busca todos os registros de ponto de um usuário ordenados por timestamp (mais recentes primeiro)
+     * 
+     * @param userId ID do usuário
+     * @return Lista de TimeClockResponse com os registros de ponto
+     */
+    public List<TimeClockResponse> findByUserId(UUID userId) {
+        logger.info("Buscando pontos do usuário {}", userId);
+        
+        // Verificar se o usuário existe
+        User user = usersService.findById(userId);
+        if (user == null) {
+            logger.warn("Tentativa de buscar pontos de usuário inexistente: {}", userId);
+            throw new RuntimeException("Usuário não encontrado");
+        }
+
+        List<TimeClock> timeClocks = repository.findByUser_IdOrderByTimestampDesc(userId);
+        logger.info("Encontrados {} registros de ponto para o usuário {}", timeClocks.size(), userId);
+
+        return timeClocks.stream()
+            .map(TimeClockResponse::new)
+            .collect(Collectors.toList());
     }
 }
