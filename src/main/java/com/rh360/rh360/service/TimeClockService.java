@@ -24,7 +24,7 @@ public class TimeClockService {
     private final CompreFaceService compreFaceService;
     
     // Threshold mínimo de confiança para validar a face (0.7 = 70%)
-    private static final double MIN_CONFIDENCE_THRESHOLD = 0.7;
+    private static final double MIN_CONFIDENCE_THRESHOLD = 0.85;
 
     public TimeClockService(TimeClockRepository repository, UsersService usersService, 
                            CompreFaceService compreFaceService) {
