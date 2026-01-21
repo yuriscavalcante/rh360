@@ -54,7 +54,8 @@ public class TimeClockController {
         summary = "Bater ponto",
         description = "Registra um ponto para o usuário especificado após validar sua face através do reconhecimento facial. " +
                       "A foto enviada será comparada com a face cadastrada do usuário. " +
-                      "O ponto só será registrado se a validação facial for bem-sucedida com confiança mínima de 70%.",
+                      "O ponto só será registrado se a validação facial for bem-sucedida com confiança mínima de 70%. " +
+                      "Aceita um parâmetro opcional 'message' (string) para incluir uma mensagem no registro de ponto.",
         security = @SecurityRequirement(name = "Bearer Authentication")
     )
     @ApiResponses(value = {
@@ -93,6 +94,7 @@ public class TimeClockController {
     public ResponseEntity<?> clockIn(
             @PathVariable UUID userId,
             @RequestParam("photo") MultipartFile photo,
+            @RequestParam(value = "message", required = false) String message,
             HttpServletRequest request) {
         
         // Verificar se o token pertence ao mesmo usuário do userId
@@ -123,7 +125,7 @@ public class TimeClockController {
 
         try {
             // Bater ponto (valida a face internamente)
-            TimeClockResponse response = timeClockService.clockIn(userId, photo);
+            TimeClockResponse response = timeClockService.clockIn(userId, photo, message);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             // Erro de validação facial ou usuário não encontrado
@@ -148,7 +150,8 @@ public class TimeClockController {
         description = "Registra um ponto para o usuário autenticado após validar sua face. " +
                       "O ID do usuário é extraído automaticamente do token JWT. " +
                       "A foto enviada será comparada com a face cadastrada do usuário. " +
-                      "O ponto só será registrado se a validação facial for bem-sucedida com confiança mínima de 70%.",
+                      "O ponto só será registrado se a validação facial for bem-sucedida com confiança mínima de 70%. " +
+                      "Aceita um parâmetro opcional 'message' (string) para incluir uma mensagem no registro de ponto.",
         security = @SecurityRequirement(name = "Bearer Authentication")
     )
     @ApiResponses(value = {
@@ -181,6 +184,7 @@ public class TimeClockController {
     @PostMapping("/me")
     public ResponseEntity<?> clockInMe(
             @RequestParam("photo") MultipartFile photo,
+            @RequestParam(value = "message", required = false) String message,
             HttpServletRequest request) {
         
         UUID userId = SecurityUtil.getUserId(request);
@@ -189,7 +193,7 @@ public class TimeClockController {
                 .body("{\"error\":\"Usuário não autenticado\"}");
         }
 
-        return clockIn(userId, photo, request);
+        return clockIn(userId, photo, message, request);
     }
 
     @Operation(
@@ -389,7 +393,8 @@ public class TimeClockController {
         summary = "Bater ponto via mobile (QR code)",
         description = "Endpoint público para bater ponto usando o token do QR code. " +
                       "Este endpoint permite que o usuário bata ponto através do celular após escanear o QR code. " +
-                      "A foto será validada usando reconhecimento facial antes de registrar o ponto.",
+                      "A foto será validada usando reconhecimento facial antes de registrar o ponto. " +
+                      "Aceita um parâmetro opcional 'message' (string) para incluir uma mensagem no registro de ponto.",
         security = @SecurityRequirement(name = "")
     )
     @ApiResponses(value = {
@@ -417,7 +422,8 @@ public class TimeClockController {
     @PostMapping("/mobile/{qrToken}")
     public ResponseEntity<?> clockInMobile(
             @PathVariable String qrToken,
-            @RequestParam("photo") MultipartFile photo) {
+            @RequestParam("photo") MultipartFile photo,
+            @RequestParam(value = "message", required = false) String message) {
         
         try {
             // Validar o token do QR code
@@ -443,7 +449,7 @@ public class TimeClockController {
             }
 
             // Bater ponto (valida a face internamente)
-            TimeClockResponse response = timeClockService.clockIn(userId, photo);
+            TimeClockResponse response = timeClockService.clockIn(userId, photo, message);
             
             // Desativar o token do QR code após uso (opcional, por segurança)
             // tokenService.deactivateToken(qrToken);

@@ -33,6 +33,10 @@ public class TimeClock {
     @Schema(description = "Data e hora do registro de ponto", example = "2024-01-15T08:30:00")
     private LocalDateTime timestamp;
 
+    @Column(length = 500)
+    @Schema(description = "Mensagem opcional do registro de ponto", example = "Entrada no trabalho")
+    private String message;
+
     @Schema(description = "Data de criação do registro")
     private String createdAt;
 

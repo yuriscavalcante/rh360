@@ -40,9 +40,10 @@ public class TimeClockService {
      * 
      * @param userId ID do usuário
      * @param photo Foto para validação facial
+     * @param message Mensagem opcional do registro de ponto
      * @return TimeClockResponse com o registro de ponto ou null se a validação falhar
      */
-    public TimeClockResponse clockIn(UUID userId, MultipartFile photo) {
+    public TimeClockResponse clockIn(UUID userId, MultipartFile photo, String message) {
         // Verificar se o usuário existe
         User user = usersService.findById(userId);
         if (user == null) {
@@ -81,6 +82,7 @@ public class TimeClockService {
         TimeClock timeClock = new TimeClock();
         timeClock.setUser(user);
         timeClock.setTimestamp(LocalDateTime.now());
+        timeClock.setMessage(message);
         timeClock.setCreatedAt(LocalDateTime.now().toString());
         timeClock.setUpdatedAt(LocalDateTime.now().toString());
 
@@ -91,7 +93,10 @@ public class TimeClockService {
 
         // Criar resposta
         TimeClockResponse response = new TimeClockResponse(savedTimeClock);
-        response.setMessage("Ponto registrado com sucesso");
+        // Se não houver mensagem customizada, usar mensagem padrão
+        if (response.getMessage() == null || response.getMessage().isEmpty()) {
+            response.setMessage("Ponto registrado com sucesso");
+        }
         response.setConfidence(verifyResponse.getConfidence());
 
         return response;

@@ -27,7 +27,7 @@ public class TimeClockResponse {
     @Schema(description = "Data de criação do registro", example = "2024-01-15T08:30:00")
     private String createdAt;
     
-    @Schema(description = "Mensagem de confirmação", example = "Ponto registrado com sucesso")
+    @Schema(description = "Mensagem do registro de ponto", example = "Entrada no trabalho")
     private String message;
     
     @Schema(description = "Nível de confiança da validação facial", example = "0.95")
@@ -38,6 +38,7 @@ public class TimeClockResponse {
         this.userId = timeClock.getUser() != null ? timeClock.getUser().getId() : null;
         this.userName = timeClock.getUser() != null ? timeClock.getUser().getName() : null;
         this.timestamp = timeClock.getTimestamp();
+        this.message = timeClock.getMessage();
         this.createdAt = timeClock.getCreatedAt();
     }
     
