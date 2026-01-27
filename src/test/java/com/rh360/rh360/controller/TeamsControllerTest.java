@@ -94,14 +94,14 @@ class TeamsControllerTest {
     void deveRetornarListaPaginadaDeEquipes() {
         // Arrange
         Page<TeamResponse> teamPage = mock(Page.class);
-        when(teamService.findAll(any(Pageable.class))).thenReturn(teamPage);
+        when(teamService.findAll(any(Pageable.class), nullable(String.class))).thenReturn(teamPage);
 
         // Act
-        Page<TeamResponse> result = teamsController.findAll(pageable);
+        Page<TeamResponse> result = teamsController.findAll(pageable, null);
 
         // Assert
         assertNotNull(result);
-        verify(teamService, times(1)).findAll(pageable);
+        verify(teamService, times(1)).findAll(pageable, null);
     }
 
     @Test

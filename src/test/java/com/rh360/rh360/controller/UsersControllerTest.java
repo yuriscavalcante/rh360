@@ -83,7 +83,7 @@ class UsersControllerTest {
         userRequest.setRole("user");
         userRequest.setStatus("active");
         
-        when(usersService.create(any(User.class), any())).thenReturn(user);
+        when(usersService.create(any(User.class), isNull(), any())).thenReturn(user);
 
         // Act
         UserResponse result = usersController.create(userRequest);
@@ -92,7 +92,7 @@ class UsersControllerTest {
         assertNotNull(result);
         assertEquals(userId, result.getId());
         assertEquals("João Silva", result.getName());
-        verify(usersService, times(1)).create(any(User.class), any());
+        verify(usersService, times(1)).create(any(User.class), isNull(), any());
     }
 
     @Test
@@ -101,14 +101,14 @@ class UsersControllerTest {
     void deveRetornarListaPaginadaDeUsuarios() {
         // Arrange
         Page<UserResponse> userPage = mock(Page.class);
-        when(usersService.findAll(any(Pageable.class))).thenReturn(userPage);
+        when(usersService.findAll(any(Pageable.class), nullable(String.class))).thenReturn(userPage);
 
         // Act
-        Page<UserResponse> result = usersController.findAll(pageable);
+        Page<UserResponse> result = usersController.findAll(pageable, null);
 
         // Assert
         assertNotNull(result);
-        verify(usersService, times(1)).findAll(pageable);
+        verify(usersService, times(1)).findAll(pageable, null);
     }
 
     @Test
@@ -179,7 +179,7 @@ class UsersControllerTest {
         updatedUser.setName("João Silva Atualizado");
         updatedUser.setEmail("joao.novo@teste.com");
         
-        when(usersService.update(eq(userId), any(User.class), any())).thenReturn(updatedUser);
+        when(usersService.update(eq(userId), any(User.class), isNull(), any())).thenReturn(updatedUser);
 
         // Act
         UserResponse result = usersController.update(userId, userRequest);
@@ -188,7 +188,7 @@ class UsersControllerTest {
         assertNotNull(result);
         assertEquals(userId, result.getId());
         assertEquals("João Silva Atualizado", result.getName());
-        verify(usersService, times(1)).update(eq(userId), any(User.class), any());
+        verify(usersService, times(1)).update(eq(userId), any(User.class), isNull(), any());
     }
 
     @Test

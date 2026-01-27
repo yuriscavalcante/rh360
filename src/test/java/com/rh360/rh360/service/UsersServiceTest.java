@@ -175,12 +175,21 @@ class UsersServiceTest {
         updatedUser.setRole("admin");
         updatedUser.setStatus("active");
 
-        when(repository.findById(userId)).thenReturn(Optional.of(user));
+        User savedUser = new User();
+        savedUser.setId(userId);
+        savedUser.setName("João Silva Atualizado");
+        savedUser.setEmail("joao.novo@teste.com");
+        savedUser.setRole("admin");
+        savedUser.setStatus("active");
+
+        when(repository.findById(userId))
+            .thenReturn(Optional.of(user))  // Primeira chamada: busca usuário existente
+            .thenReturn(Optional.of(savedUser)); // Segunda chamada: recarrega após salvar
         when(repository.findByEmail(updatedUser.getEmail())).thenReturn(Optional.empty());
         when(repository.save(any(User.class))).thenAnswer(invocation -> {
-            User savedUser = invocation.getArgument(0);
-            assertNotNull(savedUser.getUpdatedAt());
-            return savedUser;
+            User saved = invocation.getArgument(0);
+            assertNotNull(saved.getUpdatedAt());
+            return saved;
         });
 
         // Act
@@ -191,7 +200,7 @@ class UsersServiceTest {
         assertEquals("João Silva Atualizado", result.getName());
         assertEquals("joao.novo@teste.com", result.getEmail());
         assertEquals("admin", result.getRole());
-        verify(repository, times(1)).findById(userId);
+        verify(repository, times(2)).findById(userId); // Duas chamadas: início e fim
         verify(repository, times(1)).findByEmail(updatedUser.getEmail());
         verify(repository, times(1)).save(any(User.class));
     }
@@ -247,7 +256,15 @@ class UsersServiceTest {
         updatedUser.setEmail(user.getEmail()); // Mesmo email
         updatedUser.setRole("admin");
 
-        when(repository.findById(userId)).thenReturn(Optional.of(user));
+        User savedUser = new User();
+        savedUser.setId(userId);
+        savedUser.setName("João Silva Atualizado");
+        savedUser.setEmail(user.getEmail());
+        savedUser.setRole("admin");
+
+        when(repository.findById(userId))
+            .thenReturn(Optional.of(user))  // Primeira chamada: busca usuário existente
+            .thenReturn(Optional.of(savedUser)); // Segunda chamada: recarrega após salvar
         when(repository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
@@ -256,7 +273,7 @@ class UsersServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals("João Silva Atualizado", result.getName());
-        verify(repository, times(1)).findById(userId);
+        verify(repository, times(2)).findById(userId); // Duas chamadas: início e fim
         verify(repository, never()).findByEmail(anyString()); // Não deve verificar email duplicado
         verify(repository, times(1)).save(any(User.class));
     }
