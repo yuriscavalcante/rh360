@@ -6,8 +6,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Column;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.CascadeType;
 import lombok.Data;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -48,5 +51,9 @@ public class User {
 
     @Schema(description = "URL da foto do usuário", example = "https://pub-xxx.r2.dev/users/photo.jpg")
     private String photo;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Schema(description = "Lista de permissões do usuário")
+    private List<Permission> permissions;
 
 }

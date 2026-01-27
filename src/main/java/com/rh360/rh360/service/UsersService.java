@@ -14,8 +14,11 @@ import org.springframework.web.multipart.MultipartFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.rh360.rh360.dto.UserPermissionRequest;
 import com.rh360.rh360.dto.UserResponse;
+import com.rh360.rh360.entity.Permission;
 import com.rh360.rh360.entity.User;
+import com.rh360.rh360.repository.PermissionRepository;
 import com.rh360.rh360.repository.UsersRepository;
 
 @Service
@@ -24,22 +27,28 @@ public class UsersService {
     private static final Logger logger = LoggerFactory.getLogger(UsersService.class);
     
     private final UsersRepository repository;
+    private final PermissionRepository permissionRepository;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final R2StorageService r2StorageService;
     private final CompreFaceService compreFaceService;
 
-    public UsersService(UsersRepository repository, R2StorageService r2StorageService, 
-                       CompreFaceService compreFaceService) {
+    public UsersService(UsersRepository repository, PermissionRepository permissionRepository,
+                       R2StorageService r2StorageService, CompreFaceService compreFaceService) {
         this.repository = repository;
+        this.permissionRepository = permissionRepository;
         this.r2StorageService = r2StorageService;
         this.compreFaceService = compreFaceService;
     }
 
     public User create(User user) {
-        return create(user, null);
+        return create(user, null, null);
     }
 
     public User create(User user, MultipartFile photo) {
+        return create(user, photo, null);
+    }
+
+    public User create(User user, MultipartFile photo, List<UserPermissionRequest> permissions) {
         // Verificar se o email já existe
         if (repository.findByEmail(user.getEmail()).isPresent()) {
             throw new RuntimeException("Email já cadastrado");
@@ -86,7 +95,13 @@ public class UsersService {
             }
         }
         
-        return savedUser;
+        // Processar permissões se fornecidas
+        if (permissions != null && !permissions.isEmpty()) {
+            processPermissions(savedUser, permissions);
+        }
+        
+        // Recarregar o usuário com as permissões
+        return repository.findById(savedUser.getId()).orElse(savedUser);
     }
 
     public Page<UserResponse> findAll(Pageable pageable) {
@@ -102,10 +117,14 @@ public class UsersService {
     }
 
     public User update(UUID id, User user) {
-        return update(id, user, null);
+        return update(id, user, null, null);
     }
 
     public User update(UUID id, User user, MultipartFile photo) {
+        return update(id, user, photo, null);
+    }
+
+    public User update(UUID id, User user, MultipartFile photo, List<UserPermissionRequest> permissions) {
         User existingUser = findById(id);
         if (existingUser == null) {
             throw new RuntimeException("Usuário não encontrado");
@@ -169,7 +188,15 @@ public class UsersService {
             }
         }
         
-        return repository.save(existingUser);
+        // Processar permissões se fornecidas
+        if (permissions != null) {
+            processPermissions(existingUser, permissions);
+        }
+        
+        User updatedUser = repository.save(existingUser);
+        
+        // Recarregar o usuário com as permissões
+        return repository.findById(updatedUser.getId()).orElse(updatedUser);
     }
 
     public void delete(UUID id) {
@@ -180,6 +207,50 @@ public class UsersService {
         existingUser.setStatus("deleted");
         existingUser.setUpdatedAt(LocalDateTime.now().toString());
         repository.save(existingUser);
+    }
+
+    /**
+     * Processa as permissões de um usuário, substituindo as existentes pelas novas
+     */
+    private void processPermissions(User user, List<UserPermissionRequest> permissionRequests) {
+        // Deletar (soft delete) todas as permissões existentes do usuário
+        List<Permission> existingPermissions = permissionRepository.findByUserId(user.getId());
+        for (Permission existingPermission : existingPermissions) {
+            if (existingPermission.getDeletedAt() == null || existingPermission.getDeletedAt().isEmpty()) {
+                existingPermission.setDeletedAt(LocalDateTime.now().toString());
+                existingPermission.setUpdatedAt(LocalDateTime.now().toString());
+                permissionRepository.save(existingPermission);
+            }
+        }
+        
+        // Criar novas permissões
+        for (UserPermissionRequest permRequest : permissionRequests) {
+            if (permRequest.getFunction() != null && !permRequest.getFunction().isEmpty()) {
+                // Verificar se já existe uma permissão com esta função (mesmo que deletada)
+                Permission permission = permissionRepository
+                    .findByUserIdAndFunction(user.getId(), permRequest.getFunction())
+                    .orElse(new Permission());
+                
+                // Se já existe, restaurar (remover deletedAt), senão criar nova
+                if (permission.getId() != null) {
+                    permission.setDeletedAt(null);
+                    permission.setIsPermitted(permRequest.getIsPermitted());
+                    permission.setUpdatedAt(LocalDateTime.now().toString());
+                    if (permission.getCreatedAt() == null || permission.getCreatedAt().isEmpty()) {
+                        permission.setCreatedAt(LocalDateTime.now().toString());
+                    }
+                } else {
+                    permission.setUser(user);
+                    permission.setFunction(permRequest.getFunction());
+                    permission.setIsPermitted(permRequest.getIsPermitted());
+                    permission.setCreatedAt(LocalDateTime.now().toString());
+                    permission.setUpdatedAt(LocalDateTime.now().toString());
+                }
+                
+                permissionRepository.save(permission);
+                logger.info("Permissão {} processada para o usuário {}", permRequest.getFunction(), user.getId());
+            }
+        }
     }
 
 }

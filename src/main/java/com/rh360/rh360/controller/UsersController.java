@@ -78,7 +78,7 @@ public class UsersController {
         user.setPassword(userRequest.getPassword());
         user.setRole(userRequest.getRole());
         user.setStatus(userRequest.getStatus());
-        User createdUser = service.create(user, null);
+        User createdUser = service.create(user, null, userRequest.getPermissions());
         return new UserResponse(createdUser);
     }
 
@@ -263,7 +263,7 @@ public class UsersController {
         user.setPassword(userRequest.getPassword());
         user.setRole(userRequest.getRole());
         user.setStatus(userRequest.getStatus());
-        User updatedUser = service.update(id, user, null);
+        User updatedUser = service.update(id, user, null, userRequest.getPermissions());
         return new UserResponse(updatedUser);
     }
 

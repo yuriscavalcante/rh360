@@ -1,5 +1,7 @@
 package com.rh360.rh360.dto;
 
+import java.util.List;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -21,4 +23,7 @@ public class UserRequest {
 
     @Schema(description = "Status do usuário", example = "active")
     private String status;
+
+    @Schema(description = "Lista de permissões do usuário")
+    private List<UserPermissionRequest> permissions;
 }

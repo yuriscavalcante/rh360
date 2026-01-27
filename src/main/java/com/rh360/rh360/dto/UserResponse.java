@@ -1,6 +1,8 @@
 package com.rh360.rh360.dto;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import com.rh360.rh360.entity.User;
 
@@ -35,6 +37,9 @@ public class UserResponse {
     @Schema(description = "URL da foto do usuário", example = "https://pub-xxx.r2.dev/users/photo.jpg")
     private String photo;
 
+    @Schema(description = "Lista de permissões do usuário")
+    private List<PermissionResponse> permissions;
+
     public UserResponse(User user) {
         this.id = user.getId();
         this.name = user.getName();
@@ -44,5 +49,13 @@ public class UserResponse {
         this.createdAt = user.getCreatedAt();
         this.updatedAt = user.getUpdatedAt();
         this.photo = user.getPhoto();
+        
+        // Mapear permissões se existirem
+        if (user.getPermissions() != null && !user.getPermissions().isEmpty()) {
+            this.permissions = user.getPermissions().stream()
+                .filter(p -> p.getDeletedAt() == null || p.getDeletedAt().isEmpty())
+                .map(PermissionResponse::new)
+                .collect(Collectors.toList());
+        }
     }
 }
