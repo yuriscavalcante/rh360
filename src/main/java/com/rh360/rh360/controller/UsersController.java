@@ -106,7 +106,8 @@ public class UsersController {
                       "Parâmetros de query aceitos: " +
                       "'page' (número da página, começa em 0, padrão: 0), " +
                       "'size' (tamanho da página, padrão: 20), " +
-                      "'sort' (campo de ordenação no formato 'campo,direção', exemplo: 'name,asc' ou 'createdAt,desc').",
+                      "'sort' (campo de ordenação no formato 'campo,direção', exemplo: 'name,asc' ou 'createdAt,desc'), " +
+                      "'search' (busca parcial no nome do usuário, exemplo: 'au' retorna todos os usuários que contenham 'au' no nome).",
         security = @SecurityRequirement(name = "Bearer Authentication")
     )
     @ApiResponses(value = {
@@ -132,8 +133,8 @@ public class UsersController {
         )
     })
     @GetMapping
-    public Page<UserResponse> findAll(Pageable pageable) {
-        return service.findAll(pageable);
+    public Page<UserResponse> findAll(Pageable pageable, @RequestParam(value = "search", required = false) String search) {
+        return service.findAll(pageable, search);
     }
 
     @Operation(

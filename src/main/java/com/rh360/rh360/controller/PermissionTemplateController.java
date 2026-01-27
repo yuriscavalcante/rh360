@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.rh360.rh360.dto.PermissionTemplateResponse;
@@ -30,7 +31,9 @@ public class PermissionTemplateController {
 
     @Operation(
         summary = "Listar todos os templates de permissão",
-        description = "Retorna uma lista com todos os templates de permissão cadastrados no sistema",
+        description = "Retorna uma lista com todos os templates de permissão cadastrados no sistema. " +
+                      "Parâmetros de query aceitos: " +
+                      "'search' (busca parcial no nome ou label do template, exemplo: 'user' retorna todos os templates que contenham 'user' no nome ou label).",
         security = @SecurityRequirement(name = "Bearer Authentication")
     )
     @ApiResponses(value = {
@@ -51,7 +54,7 @@ public class PermissionTemplateController {
         )
     })
     @GetMapping
-    public List<PermissionTemplateResponse> findAll() {
-        return service.findAll();
+    public List<PermissionTemplateResponse> findAll(@RequestParam(value = "search", required = false) String search) {
+        return service.findAll(search);
     }
 }

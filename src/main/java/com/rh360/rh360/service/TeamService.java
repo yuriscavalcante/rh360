@@ -69,7 +69,16 @@ public class TeamService {
     }
 
     public Page<TeamResponse> findAll(Pageable pageable) {
-        Page<Team> teamPage = teamRepository.findAll(pageable);
+        return findAll(pageable, null);
+    }
+
+    public Page<TeamResponse> findAll(Pageable pageable, String search) {
+        Page<Team> teamPage;
+        if (search != null && !search.trim().isEmpty()) {
+            teamPage = teamRepository.findByNameContainingIgnoreCase(search.trim(), pageable);
+        } else {
+            teamPage = teamRepository.findAll(pageable);
+        }
         List<TeamResponse> teamResponses = teamPage.getContent().stream()
             .map(team -> new TeamResponse(team, false))
             .collect(Collectors.toList());

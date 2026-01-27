@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.rh360.rh360.dto.TaskRequest;
@@ -79,7 +80,8 @@ public class TasksController {
                       "Parâmetros de query aceitos: " +
                       "'page' (número da página, começa em 0, padrão: 0), " +
                       "'size' (tamanho da página, padrão: 20), " +
-                      "'sort' (campo de ordenação no formato 'campo,direção', exemplo: 'title,asc' ou 'createdAt,desc').",
+                      "'sort' (campo de ordenação no formato 'campo,direção', exemplo: 'title,asc' ou 'createdAt,desc'), " +
+                      "'search' (busca parcial no título da tarefa, exemplo: 'auth' retorna todas as tarefas que contenham 'auth' no título).",
         security = @SecurityRequirement(name = "Bearer Authentication")
     )
     @ApiResponses(value = {
@@ -105,8 +107,8 @@ public class TasksController {
         )
     })
     @GetMapping
-    public Page<TaskResponse> findAll(Pageable pageable) {
-        return service.findAll(pageable);
+    public Page<TaskResponse> findAll(Pageable pageable, @RequestParam(value = "search", required = false) String search) {
+        return service.findAll(pageable, search);
     }
 
     @Operation(

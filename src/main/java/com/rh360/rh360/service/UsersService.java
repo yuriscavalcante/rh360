@@ -105,7 +105,16 @@ public class UsersService {
     }
 
     public Page<UserResponse> findAll(Pageable pageable) {
-        Page<User> userPage = repository.findAll(pageable);
+        return findAll(pageable, null);
+    }
+
+    public Page<UserResponse> findAll(Pageable pageable, String search) {
+        Page<User> userPage;
+        if (search != null && !search.trim().isEmpty()) {
+            userPage = repository.findByNameContainingIgnoreCase(search.trim(), pageable);
+        } else {
+            userPage = repository.findAll(pageable);
+        }
         List<UserResponse> userResponses = userPage.getContent().stream()
             .map(UserResponse::new)
             .collect(Collectors.toList());

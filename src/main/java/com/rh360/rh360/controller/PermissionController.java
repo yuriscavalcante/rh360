@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.rh360.rh360.dto.PermissionRequest;
@@ -91,7 +92,8 @@ public class PermissionController {
                       "Parâmetros de query aceitos: " +
                       "'page' (número da página, começa em 0, padrão: 0), " +
                       "'size' (tamanho da página, padrão: 20), " +
-                      "'sort' (campo de ordenação no formato 'campo,direção', exemplo: 'function,asc' ou 'createdAt,desc').",
+                      "'sort' (campo de ordenação no formato 'campo,direção', exemplo: 'function,asc' ou 'createdAt,desc'), " +
+                      "'search' (busca parcial na função da permissão, exemplo: 'create' retorna todas as permissões que contenham 'create' na função).",
         security = @SecurityRequirement(name = "Bearer Authentication")
     )
     @ApiResponses(value = {
@@ -117,8 +119,8 @@ public class PermissionController {
         )
     })
     @GetMapping
-    public Page<PermissionResponse> findAll(Pageable pageable) {
-        return service.findAll(pageable);
+    public Page<PermissionResponse> findAll(Pageable pageable, @RequestParam(value = "search", required = false) String search) {
+        return service.findAll(pageable, search);
     }
 
     @Operation(

@@ -23,7 +23,16 @@ public class PermissionTemplateService {
     }
 
     public List<PermissionTemplateResponse> findAll() {
-        List<PermissionTemplate> templates = repository.findAll();
+        return findAll(null);
+    }
+
+    public List<PermissionTemplateResponse> findAll(String search) {
+        List<PermissionTemplate> templates;
+        if (search != null && !search.trim().isEmpty()) {
+            templates = repository.findByNomeOrLabelContainingIgnoreCase(search.trim());
+        } else {
+            templates = repository.findAll();
+        }
         logger.info("Listando {} templates de permissão", templates.size());
         return templates.stream()
             .map(PermissionTemplateResponse::new)

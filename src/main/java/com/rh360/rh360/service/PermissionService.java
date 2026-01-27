@@ -52,7 +52,16 @@ public class PermissionService {
     }
 
     public Page<PermissionResponse> findAll(Pageable pageable) {
-        Page<Permission> permissionPage = repository.findAll(pageable);
+        return findAll(pageable, null);
+    }
+
+    public Page<PermissionResponse> findAll(Pageable pageable, String search) {
+        Page<Permission> permissionPage;
+        if (search != null && !search.trim().isEmpty()) {
+            permissionPage = repository.findByFunctionContainingIgnoreCase(search.trim(), pageable);
+        } else {
+            permissionPage = repository.findAll(pageable);
+        }
         List<PermissionResponse> permissionResponses = permissionPage.getContent().stream()
             .map(PermissionResponse::new)
             .collect(Collectors.toList());

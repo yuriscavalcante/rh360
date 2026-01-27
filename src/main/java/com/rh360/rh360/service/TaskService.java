@@ -73,7 +73,16 @@ public class TaskService {
     }
 
     public Page<TaskResponse> findAll(Pageable pageable) {
-        Page<Task> taskPage = taskRepository.findAll(pageable);
+        return findAll(pageable, null);
+    }
+
+    public Page<TaskResponse> findAll(Pageable pageable, String search) {
+        Page<Task> taskPage;
+        if (search != null && !search.trim().isEmpty()) {
+            taskPage = taskRepository.findByTitleContainingIgnoreCase(search.trim(), pageable);
+        } else {
+            taskPage = taskRepository.findAll(pageable);
+        }
         List<TaskResponse> taskResponses = taskPage.getContent().stream()
             .map(task -> new TaskResponse(task, false, false))
             .collect(Collectors.toList());
