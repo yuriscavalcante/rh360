@@ -1,0 +1,57 @@
+package com.rh360.rh360.controller;
+
+import java.util.List;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.rh360.rh360.dto.PermissionTemplateResponse;
+import com.rh360.rh360.service.PermissionTemplateService;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+@RestController
+@RequestMapping("/api/permission-templates")
+@Tag(name = "Templates de Permissões", description = "Endpoints para gerenciamento de templates de permissões")
+public class PermissionTemplateController {
+
+    private final PermissionTemplateService service;
+
+    public PermissionTemplateController(PermissionTemplateService service) {
+        this.service = service;
+    }
+
+    @Operation(
+        summary = "Listar todos os templates de permissão",
+        description = "Retorna uma lista com todos os templates de permissão cadastrados no sistema",
+        security = @SecurityRequirement(name = "Bearer Authentication")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Lista de templates de permissão retornada com sucesso",
+            content = @Content(schema = @Schema(implementation = List.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado - token JWT ausente ou inválido",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Erro interno do servidor",
+            content = @Content
+        )
+    })
+    @GetMapping
+    public List<PermissionTemplateResponse> findAll() {
+        return service.findAll();
+    }
+}
