@@ -132,6 +132,58 @@ public class R2StorageService {
         }
     }
 
+    public String uploadFinanceAttachment(MultipartFile file, String type, UUID ownerId) {
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("Arquivo não pode ser vazio");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || contentType.isBlank()) {
+            contentType = "application/octet-stream";
+        }
+
+        try {
+            String originalFilename = file.getOriginalFilename();
+            String extension = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+
+            // Ex.: finance/expenses/{id}/{uuid}.pdf
+            String fileName = "finance/" + type + "/" + ownerId + "/" + UUID.randomUUID() + extension;
+
+            InputStream inputStream = file.getInputStream();
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(fileName)
+                    .contentType(contentType)
+                    .build();
+
+            getS3Client().putObject(putObjectRequest, RequestBody.fromInputStream(inputStream, file.getSize()));
+
+            if (publicUrl != null && !publicUrl.isEmpty()) {
+                return publicUrl + "/" + fileName;
+            } else {
+                return endpointUrl.replace("/" + accountId, "") + "/" + bucketName + "/" + fileName;
+            }
+        } catch (S3Exception e) {
+            String errorCode = e.awsErrorDetails() != null ? e.awsErrorDetails().errorCode() : "UNKNOWN";
+            String errorMessage = e.awsErrorDetails() != null ? e.awsErrorDetails().errorMessage() : e.getMessage();
+            String errorDetails = String.format(
+                "Erro ao fazer upload para R2 - Status: %s, Code: %s, Message: %s",
+                e.statusCode(), errorCode, errorMessage
+            );
+            if (e.statusCode() == 403) {
+                throw new RuntimeException(
+                    "Acesso negado ao R2. Verifique permissões do token e bucket. Detalhes: " + errorDetails, e
+                );
+            }
+            throw new RuntimeException("Erro ao fazer upload para R2: " + errorDetails, e);
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao processar arquivo: " + e.getMessage(), e);
+        }
+    }
+
     public void deletePhoto(String photoUrl) {
         if (photoUrl == null || photoUrl.isEmpty()) {
             return;
