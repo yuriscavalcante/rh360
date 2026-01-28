@@ -13,11 +13,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.rh360.rh360.dto.UserPermissionRequest;
 import com.rh360.rh360.dto.UserResponse;
 import com.rh360.rh360.entity.Permission;
 import com.rh360.rh360.entity.User;
+import com.rh360.rh360.realtime.RealTimeEvent;
+import com.rh360.rh360.realtime.RealTimeTopic;
+import com.rh360.rh360.realtime.NoOpRealTimePublisher;
+import com.rh360.rh360.realtime.RealTimePublisher;
 import com.rh360.rh360.repository.PermissionRepository;
 import com.rh360.rh360.repository.UsersRepository;
 
@@ -31,13 +36,22 @@ public class UsersService {
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final R2StorageService r2StorageService;
     private final CompreFaceService compreFaceService;
+    private final RealTimePublisher realTimePublisher;
 
     public UsersService(UsersRepository repository, PermissionRepository permissionRepository,
-                       R2StorageService r2StorageService, CompreFaceService compreFaceService) {
+                        R2StorageService r2StorageService, CompreFaceService compreFaceService) {
+        this(repository, permissionRepository, r2StorageService, compreFaceService, NoOpRealTimePublisher.INSTANCE);
+    }
+
+    @Autowired
+    public UsersService(UsersRepository repository, PermissionRepository permissionRepository,
+                       R2StorageService r2StorageService, CompreFaceService compreFaceService,
+                       RealTimePublisher realTimePublisher) {
         this.repository = repository;
         this.permissionRepository = permissionRepository;
         this.r2StorageService = r2StorageService;
         this.compreFaceService = compreFaceService;
+        this.realTimePublisher = realTimePublisher != null ? realTimePublisher : NoOpRealTimePublisher.INSTANCE;
     }
 
     public User create(User user) {
@@ -101,7 +115,10 @@ public class UsersService {
         }
         
         // Recarregar o usuário com as permissões
-        return repository.findById(savedUser.getId()).orElse(savedUser);
+        User result = repository.findById(savedUser.getId()).orElse(savedUser);
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.USERS, "refresh", null));
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.USERS_ME, "refresh", result.getId().toString()));
+        return result;
     }
 
     public Page<UserResponse> findAll(Pageable pageable) {
@@ -205,7 +222,10 @@ public class UsersService {
         User updatedUser = repository.save(existingUser);
         
         // Recarregar o usuário com as permissões
-        return repository.findById(updatedUser.getId()).orElse(updatedUser);
+        User result = repository.findById(updatedUser.getId()).orElse(updatedUser);
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.USERS, "refresh", null));
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.USERS_ME, "refresh", result.getId().toString()));
+        return result;
     }
 
     public void delete(UUID id) {
@@ -216,6 +236,8 @@ public class UsersService {
         existingUser.setStatus("deleted");
         existingUser.setUpdatedAt(LocalDateTime.now().toString());
         repository.save(existingUser);
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.USERS, "refresh", null));
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.USERS_ME, "refresh", existingUser.getId().toString()));
     }
 
     /**

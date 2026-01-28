@@ -22,6 +22,16 @@ services:
       timeout: 5s
       retries: 5
 
+  # Redis (Pub/Sub) para realtime
+  redis:
+    image: redis:7-alpine
+    container_name: rh360-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - rh360-network
+
   # Serviço da Aplicação
   rh360:
     build: .
@@ -37,9 +47,13 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRATION=${JWT_EXPIRATION}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     restart: unless-stopped
     networks:
       - rh360-network

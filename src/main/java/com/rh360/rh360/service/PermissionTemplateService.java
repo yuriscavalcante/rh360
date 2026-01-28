@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,10 @@ import org.slf4j.LoggerFactory;
 import com.rh360.rh360.dto.PermissionTemplateRequest;
 import com.rh360.rh360.dto.PermissionTemplateResponse;
 import com.rh360.rh360.entity.PermissionTemplate;
+import com.rh360.rh360.realtime.RealTimeEvent;
+import com.rh360.rh360.realtime.RealTimeTopic;
+import com.rh360.rh360.realtime.NoOpRealTimePublisher;
+import com.rh360.rh360.realtime.RealTimePublisher;
 import com.rh360.rh360.repository.PermissionTemplateRepository;
 
 @Service
@@ -19,9 +24,17 @@ public class PermissionTemplateService {
     private static final Logger logger = LoggerFactory.getLogger(PermissionTemplateService.class);
     
     private final PermissionTemplateRepository repository;
+    private final RealTimePublisher realTimePublisher;
+
+    @Autowired
+    public PermissionTemplateService(PermissionTemplateRepository repository,
+                                     RealTimePublisher realTimePublisher) {
+        this.repository = repository;
+        this.realTimePublisher = realTimePublisher != null ? realTimePublisher : NoOpRealTimePublisher.INSTANCE;
+    }
 
     public PermissionTemplateService(PermissionTemplateRepository repository) {
-        this.repository = repository;
+        this(repository, NoOpRealTimePublisher.INSTANCE);
     }
 
     public PermissionTemplateResponse create(PermissionTemplateRequest request) {
@@ -44,6 +57,7 @@ public class PermissionTemplateService {
 
         PermissionTemplate savedTemplate = repository.save(template);
         logger.info("Template de permissão {} criado com sucesso", savedTemplate.getId());
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.PERMISSION_TEMPLATES, "refresh", null));
         
         return new PermissionTemplateResponse(savedTemplate);
     }

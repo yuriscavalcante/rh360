@@ -11,10 +11,15 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.rh360.rh360.dto.PermissionResponse;
 import com.rh360.rh360.entity.Permission;
 import com.rh360.rh360.entity.User;
+import com.rh360.rh360.realtime.RealTimeEvent;
+import com.rh360.rh360.realtime.RealTimeTopic;
+import com.rh360.rh360.realtime.NoOpRealTimePublisher;
+import com.rh360.rh360.realtime.RealTimePublisher;
 import com.rh360.rh360.repository.PermissionRepository;
 import com.rh360.rh360.repository.UsersRepository;
 
@@ -25,10 +30,18 @@ public class PermissionService {
     
     private final PermissionRepository repository;
     private final UsersRepository usersRepository;
+    private final RealTimePublisher realTimePublisher;
 
-    public PermissionService(PermissionRepository repository, UsersRepository usersRepository) {
+    @Autowired
+    public PermissionService(PermissionRepository repository, UsersRepository usersRepository,
+                             RealTimePublisher realTimePublisher) {
         this.repository = repository;
         this.usersRepository = usersRepository;
+        this.realTimePublisher = realTimePublisher != null ? realTimePublisher : NoOpRealTimePublisher.INSTANCE;
+    }
+
+    public PermissionService(PermissionRepository repository, UsersRepository usersRepository) {
+        this(repository, usersRepository, NoOpRealTimePublisher.INSTANCE);
     }
 
     public Permission create(Permission permission) {
@@ -47,6 +60,7 @@ public class PermissionService {
         
         Permission savedPermission = repository.save(permission);
         logger.info("Permissão {} criada com sucesso para o usuário {}", savedPermission.getId(), user.getId());
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.PERMISSIONS, "refresh", null));
         
         return savedPermission;
     }
@@ -109,6 +123,7 @@ public class PermissionService {
         
         Permission updatedPermission = repository.save(existingPermission);
         logger.info("Permissão {} atualizada com sucesso", updatedPermission.getId());
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.PERMISSIONS, "refresh", null));
         
         return updatedPermission;
     }
@@ -122,6 +137,7 @@ public class PermissionService {
         existingPermission.setUpdatedAt(LocalDateTime.now().toString());
         repository.save(existingPermission);
         logger.info("Permissão {} deletada com sucesso", id);
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.PERMISSIONS, "refresh", null));
     }
 
 }

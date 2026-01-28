@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,10 @@ import com.rh360.rh360.dto.TaskResponse;
 import com.rh360.rh360.entity.Task;
 import com.rh360.rh360.entity.User;
 import com.rh360.rh360.entity.Team;
+import com.rh360.rh360.realtime.RealTimeEvent;
+import com.rh360.rh360.realtime.RealTimeTopic;
+import com.rh360.rh360.realtime.NoOpRealTimePublisher;
+import com.rh360.rh360.realtime.RealTimePublisher;
 import com.rh360.rh360.repository.TaskRepository;
 import com.rh360.rh360.repository.UsersRepository;
 import com.rh360.rh360.repository.TeamRepository;
@@ -28,11 +33,19 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final UsersRepository usersRepository;
     private final TeamRepository teamRepository;
+    private final RealTimePublisher realTimePublisher;
 
-    public TaskService(TaskRepository taskRepository, UsersRepository usersRepository, TeamRepository teamRepository) {
+    @Autowired
+    public TaskService(TaskRepository taskRepository, UsersRepository usersRepository, TeamRepository teamRepository,
+                       RealTimePublisher realTimePublisher) {
         this.taskRepository = taskRepository;
         this.usersRepository = usersRepository;
         this.teamRepository = teamRepository;
+        this.realTimePublisher = realTimePublisher != null ? realTimePublisher : NoOpRealTimePublisher.INSTANCE;
+    }
+
+    public TaskService(TaskRepository taskRepository, UsersRepository usersRepository, TeamRepository teamRepository) {
+        this(taskRepository, usersRepository, teamRepository, NoOpRealTimePublisher.INSTANCE);
     }
 
     @Transactional
@@ -69,6 +82,7 @@ public class TaskService {
         }
         
         Task savedTask = taskRepository.save(task);
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.TASKS, "refresh", null));
         return new TaskResponse(savedTask, true, true);
     }
 
@@ -277,6 +291,7 @@ public class TaskService {
         }
         
         Task savedTask = taskRepository.save(existingTask);
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.TASKS, "refresh", null));
         return new TaskResponse(savedTask, true, true);
     }
 
@@ -290,6 +305,7 @@ public class TaskService {
         existingTask.setUpdatedAt(LocalDateTime.now().toString());
         existingTask.setDeletedAt(LocalDateTime.now().toString());
         taskRepository.save(existingTask);
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.TASKS, "refresh", null));
     }
 
     private int compareTasks(Task t1, Task t2, String property) {

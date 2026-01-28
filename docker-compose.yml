@@ -14,7 +14,17 @@
       - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRATION=${JWT_EXPIRATION}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
       # Configurações do CompreFace
       - COMPREFACE_API_URL=${COMPREFACE_API_URL:-}
       - COMPREFACE_API_KEY=${COMPREFACE_API_KEY:-}
+    restart: unless-stopped
+
+  # Redis (Pub/Sub) para realtime
+  redis:
+    image: redis:7-alpine
+    container_name: rh360-redis
+    ports:
+      - "6379:6379"
     restart: unless-stopped

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -13,6 +14,10 @@ import com.rh360.rh360.dto.CompanyExpenseRequest;
 import com.rh360.rh360.dto.CompanyExpenseResponse;
 import com.rh360.rh360.entity.CompanyExpense;
 import com.rh360.rh360.entity.CompanyExpenseAttachment;
+import com.rh360.rh360.realtime.RealTimeEvent;
+import com.rh360.rh360.realtime.RealTimeTopic;
+import com.rh360.rh360.realtime.NoOpRealTimePublisher;
+import com.rh360.rh360.realtime.RealTimePublisher;
 import com.rh360.rh360.repository.CompanyExpenseAttachmentRepository;
 import com.rh360.rh360.repository.CompanyExpenseRepository;
 
@@ -22,14 +27,25 @@ public class CompanyExpenseService {
     private final CompanyExpenseRepository repository;
     private final CompanyExpenseAttachmentRepository attachmentRepository;
     private final R2StorageService r2StorageService;
+    private final RealTimePublisher realTimePublisher;
+
+    @Autowired
+    public CompanyExpenseService(
+            CompanyExpenseRepository repository,
+            CompanyExpenseAttachmentRepository attachmentRepository,
+            R2StorageService r2StorageService,
+            RealTimePublisher realTimePublisher) {
+        this.repository = repository;
+        this.attachmentRepository = attachmentRepository;
+        this.r2StorageService = r2StorageService;
+        this.realTimePublisher = realTimePublisher != null ? realTimePublisher : NoOpRealTimePublisher.INSTANCE;
+    }
 
     public CompanyExpenseService(
             CompanyExpenseRepository repository,
             CompanyExpenseAttachmentRepository attachmentRepository,
             R2StorageService r2StorageService) {
-        this.repository = repository;
-        this.attachmentRepository = attachmentRepository;
-        this.r2StorageService = r2StorageService;
+        this(repository, attachmentRepository, r2StorageService, NoOpRealTimePublisher.INSTANCE);
     }
 
     public CompanyExpenseResponse create(CompanyExpenseRequest request) {
@@ -49,6 +65,7 @@ public class CompanyExpenseService {
 
         CompanyExpense saved = repository.save(expense);
         saveAttachments(saved, files);
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.COMPANY_EXPENSES, "refresh", null));
         return new CompanyExpenseResponse(saved, attachmentRepository.findByCompanyExpense_IdAndDeletedAtIsNull(saved.getId()));
     }
 
@@ -66,6 +83,7 @@ public class CompanyExpenseService {
         existing.setUpdatedAt(LocalDateTime.now().toString());
         CompanyExpense saved = repository.save(existing);
         saveAttachments(saved, files);
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.COMPANY_EXPENSES, "refresh", null));
         return new CompanyExpenseResponse(saved, attachmentRepository.findByCompanyExpense_IdAndDeletedAtIsNull(saved.getId()));
     }
 
@@ -77,6 +95,7 @@ public class CompanyExpenseService {
         existing.setDeletedAt(LocalDateTime.now().toString());
         existing.setUpdatedAt(LocalDateTime.now().toString());
         repository.save(existing);
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.COMPANY_EXPENSES, "refresh", null));
     }
 
     public CompanyExpenseResponse findById(UUID id) {

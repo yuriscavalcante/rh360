@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,10 @@ import com.rh360.rh360.dto.TeamResponse;
 import com.rh360.rh360.dto.UserResponse;
 import com.rh360.rh360.entity.Team;
 import com.rh360.rh360.entity.TeamUser;
+import com.rh360.rh360.realtime.RealTimeEvent;
+import com.rh360.rh360.realtime.RealTimeTopic;
+import com.rh360.rh360.realtime.NoOpRealTimePublisher;
+import com.rh360.rh360.realtime.RealTimePublisher;
 import com.rh360.rh360.repository.TeamRepository;
 import com.rh360.rh360.repository.TeamUserRepository;
 import com.rh360.rh360.repository.UsersRepository;
@@ -28,11 +33,19 @@ public class TeamService {
     private final TeamRepository teamRepository;
     private final UsersRepository usersRepository;
     private final TeamUserRepository teamUserRepository;
+    private final RealTimePublisher realTimePublisher;
 
-    public TeamService(TeamRepository teamRepository, UsersRepository usersRepository, TeamUserRepository teamUserRepository) {
+    @Autowired
+    public TeamService(TeamRepository teamRepository, UsersRepository usersRepository, TeamUserRepository teamUserRepository,
+                       RealTimePublisher realTimePublisher) {
         this.teamRepository = teamRepository;
         this.usersRepository = usersRepository;
         this.teamUserRepository = teamUserRepository;
+        this.realTimePublisher = realTimePublisher != null ? realTimePublisher : NoOpRealTimePublisher.INSTANCE;
+    }
+
+    public TeamService(TeamRepository teamRepository, UsersRepository usersRepository, TeamUserRepository teamUserRepository) {
+        this(teamRepository, usersRepository, teamUserRepository, NoOpRealTimePublisher.INSTANCE);
     }
 
     @Transactional
@@ -65,6 +78,7 @@ public class TeamService {
             teamRepository.saveAndFlush(savedTeam);
         }
         
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.TEAMS, "refresh", null));
         return new TeamResponse(savedTeam, false);
     }
 
@@ -187,6 +201,7 @@ public class TeamService {
         }
         
         Team savedTeam = teamRepository.saveAndFlush(existingTeam);
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.TEAMS, "refresh", null));
         return new TeamResponse(savedTeam, false);
     }
 
@@ -199,6 +214,7 @@ public class TeamService {
         existingTeam.setStatus("inactive");
         existingTeam.setUpdatedAt(LocalDateTime.now().toString());
         teamRepository.save(existingTeam);
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.TEAMS, "refresh", null));
     }
 
     @Transactional
@@ -229,6 +245,7 @@ public class TeamService {
         teamUser.setUser(user);
         team.getTeamUsers().add(teamUser);
         teamRepository.save(team);
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.TEAMS, "refresh", null));
     }
 
     @Transactional
@@ -240,6 +257,7 @@ public class TeamService {
             team.getTeamUsers().removeIf(tu -> tu.getId().getUserId().equals(userId));
             teamRepository.save(team);
         }
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.TEAMS, "refresh", null));
     }
 
     public Page<UserResponse> findUsersByTeamId(UUID teamId, Pageable pageable) {
