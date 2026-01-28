@@ -3,10 +3,13 @@ package com.rh360.rh360.controller;
 import java.util.List;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.rh360.rh360.dto.PermissionTemplateRequest;
 import com.rh360.rh360.dto.PermissionTemplateResponse;
 import com.rh360.rh360.service.PermissionTemplateService;
 
@@ -27,6 +30,38 @@ public class PermissionTemplateController {
 
     public PermissionTemplateController(PermissionTemplateService service) {
         this.service = service;
+    }
+
+    @Operation(
+        summary = "Criar novo template de permissão",
+        description = "Cria um novo template de permissão no sistema. Os campos 'nome', 'label' e 'rota' são obrigatórios.",
+        security = @SecurityRequirement(name = "Bearer Authentication")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Template de permissão criado com sucesso",
+            content = @Content(schema = @Schema(implementation = PermissionTemplateResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Requisição inválida - dados do template incorretos ou faltando",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Não autenticado - token JWT ausente ou inválido",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Erro interno do servidor",
+            content = @Content
+        )
+    })
+    @PostMapping
+    public PermissionTemplateResponse create(@RequestBody PermissionTemplateRequest request) {
+        return service.create(request);
     }
 
     @Operation(
