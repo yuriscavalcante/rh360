@@ -20,6 +20,7 @@ public class PermissionAuthorizationFilter extends OncePerRequestFilter {
 
     private static final List<String> EXCLUDED_PATHS = List.of(
             "/api/auth/login",
+            "/api/auth/validate",
             "/error",
             "/actuator",
             "/swagger-ui",
