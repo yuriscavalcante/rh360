@@ -4,6 +4,7 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  CreateDateColumn,
 } from 'typeorm';
 import { Expense } from './expense.entity';
 
@@ -18,12 +19,15 @@ export class ExpenseAttachment {
   @JoinColumn({ name: 'expense_id' })
   expense: Expense;
 
-  @Column()
-  filename: string;
-
-  @Column()
+  @Column({ nullable: false, length: 2048 })
   url: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ nullable: true })
   createdAt: string;
+
+  @Column({ nullable: true })
+  updatedAt: string;
+
+  @Column({ nullable: true })
+  deletedAt: string;
 }

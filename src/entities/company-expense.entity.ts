@@ -3,6 +3,11 @@ import {
   PrimaryGeneratedColumn,
   Column,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
 } from 'typeorm';
 import { CompanyExpenseAttachment } from './company-expense-attachment.entity';
 
@@ -11,7 +16,7 @@ export class CompanyExpense {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ nullable: false })
   title: string;
 
   @Column()
@@ -29,13 +34,13 @@ export class CompanyExpense {
   @Column({ nullable: true })
   status: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ nullable: true })
   createdAt: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ nullable: true })
   updatedAt: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ nullable: true })
   deletedAt: string;
 
   @OneToMany(

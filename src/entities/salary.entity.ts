@@ -5,6 +5,9 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 import { SalaryAttachment } from './salary-attachment.entity';
@@ -60,13 +63,13 @@ export class Salary {
   @Column({ nullable: true })
   status: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ nullable: true })
   createdAt: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ nullable: true })
   updatedAt: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ nullable: true })
   deletedAt: string;
 
   @OneToMany(() => SalaryAttachment, (attachment) => attachment.salary, {

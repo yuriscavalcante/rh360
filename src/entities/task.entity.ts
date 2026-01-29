@@ -5,6 +5,9 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 import { Team } from './team.entity';
@@ -44,12 +47,12 @@ export class Task {
   @Column({ nullable: true })
   status: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ nullable: true })
   createdAt: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ nullable: true })
   updatedAt: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ nullable: true })
   deletedAt: string;
 }

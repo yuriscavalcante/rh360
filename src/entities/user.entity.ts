@@ -5,10 +5,14 @@ import {
   OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
 } from 'typeorm';
 import { Permission } from './permission.entity';
 import { TimeClock } from './time-clock.entity';
 import { TeamUser } from './team-user.entity';
+import { Expense } from './expense.entity';
+import { Salary } from './salary.entity';
+import { Task } from './task.entity';
 
 @Entity('users')
 export class User {
@@ -33,13 +37,13 @@ export class User {
   @Column({ nullable: true })
   photo: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ nullable: true })
   createdAt: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ nullable: true })
   updatedAt: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ nullable: true })
   deletedAt: string;
 
   @OneToMany(() => Permission, (permission) => permission.user, {
@@ -52,4 +56,14 @@ export class User {
 
   @OneToMany(() => TeamUser, (teamUser) => teamUser.user)
   teamUsers: TeamUser[];
+
+  @OneToMany(() => Expense, (expense) => expense.user)
+  expenses: Expense[];
+
+  @OneToMany(() => Salary, (salary) => salary.user)
+  salaries: Salary[];
+
+  @OneToMany(() => Task, (task) => task.responsibleUser)
+  tasks: Task[];
+
 }

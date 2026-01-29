@@ -5,6 +5,9 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 import { ExpenseAttachment } from './expense-attachment.entity';
@@ -39,13 +42,13 @@ export class Expense {
   @Column({ nullable: true })
   status: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ nullable: true })
   createdAt: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ nullable: true })
   updatedAt: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ nullable: true })
   deletedAt: string;
 
   @OneToMany(() => ExpenseAttachment, (attachment) => attachment.expense, {

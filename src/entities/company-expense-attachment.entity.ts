@@ -4,6 +4,7 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  CreateDateColumn,
 } from 'typeorm';
 import { CompanyExpense } from './company-expense.entity';
 
@@ -20,12 +21,15 @@ export class CompanyExpenseAttachment {
   @JoinColumn({ name: 'company_expense_id' })
   companyExpense: CompanyExpense;
 
-  @Column()
-  filename: string;
-
-  @Column()
+  @Column({ nullable: false, length: 2048 })
   url: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ nullable: true })
   createdAt: string;
+
+  @Column({ nullable: true })
+  updatedAt: string;
+
+  @Column({ nullable: true })
+  deletedAt: string;
 }

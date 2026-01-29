@@ -3,6 +3,9 @@ import {
   PrimaryGeneratedColumn,
   Column,
   OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
 } from 'typeorm';
 import { TeamUser } from './team-user.entity';
 
@@ -20,13 +23,13 @@ export class Team {
   @Column({ default: 'active' })
   status: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ nullable: true })
   createdAt: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ nullable: true })
   updatedAt: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ nullable: true })
   deletedAt: string;
 
   @OneToMany(() => TeamUser, (teamUser) => teamUser.team, {
