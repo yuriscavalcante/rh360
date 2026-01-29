@@ -18,7 +18,11 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('Token não fornecido ou formato inválido');
     }
 
-    const token = authHeader.substring(7);
+    const token = authHeader.substring(7).trim();
+
+    if (!token) {
+      throw new UnauthorizedException('Token não fornecido ou formato inválido');
+    }
 
     const isValid = await this.tokenService.validateToken(token);
     if (!isValid) {

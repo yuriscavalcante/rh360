@@ -36,12 +36,34 @@ export class TokenService {
   }
 
   async saveToken(tokenString: string, userId: string): Promise<Token> {
-    const decoded = this.jwtService.decode(tokenString) as any;
+    // Garantir que o token seja salvo sem espaços
+    const cleanToken = tokenString.trim();
+    
+    const decoded = this.jwtService.decode(cleanToken) as any;
+    if (!decoded || !decoded.exp) {
+      throw new Error('Token inválido: não foi possível decodificar');
+    }
+    
     const expiresAt = new Date(decoded.exp * 1000);
     const createdAt = new Date();
 
+    // Verificar se o token já existe no banco
+    const existingToken = await this.tokenRepository.findOne({
+      where: { token: cleanToken },
+    });
+
+    if (existingToken) {
+      // Se o token já existe, atualizar para ativo (garantir que está ativo)
+      existingToken.active = true;
+      existingToken.userId = userId;
+      existingToken.expiresAt = expiresAt;
+      existingToken.createdAt = createdAt;
+      return this.tokenRepository.save(existingToken);
+    }
+
+    // Se não existe, criar novo token como ativo
     const token = this.tokenRepository.create({
-      token: tokenString,
+      token: cleanToken,
       userId,
       active: true,
       createdAt,
@@ -52,18 +74,21 @@ export class TokenService {
   }
 
   extractEmail(token: string): string {
-    const decoded = this.jwtService.decode(token) as any;
-    return decoded.email;
+    const cleanToken = token.trim();
+    const decoded = this.jwtService.decode(cleanToken) as any;
+    return decoded?.email;
   }
 
   extractUserId(token: string): string {
-    const decoded = this.jwtService.decode(token) as any;
-    return decoded.userId;
+    const cleanToken = token.trim();
+    const decoded = this.jwtService.decode(cleanToken) as any;
+    return decoded?.userId;
   }
 
   extractRole(token: string): string {
-    const decoded = this.jwtService.decode(token) as any;
-    return decoded.role;
+    const cleanToken = token.trim();
+    const decoded = this.jwtService.decode(cleanToken) as any;
+    return decoded?.role;
   }
 
   async validateToken(token: string): Promise<boolean> {
@@ -72,35 +97,49 @@ export class TokenService {
       const cleanToken = token.trim();
       
       if (!cleanToken) {
-        console.error('Token vazio ou inválido');
         return false;
       }
 
-      // Validar se o token JWT está válido
-      const decoded = await this.jwtService.verifyAsync(cleanToken);
-      console.log('Token JWT válido, decoded:', decoded);
-      
-      // Validar se o token está ativo no banco de dados
+      // Primeiro validar se o token JWT está válido (não expirado e assinatura correta)
+      let decoded: any;
+      try {
+        decoded = await this.jwtService.verifyAsync(cleanToken);
+      } catch (jwtError) {
+        // Token JWT inválido ou expirado
+        return false;
+      }
+
+      // Extrair userId do token decodificado
+      const userId = decoded.userId;
+      if (!userId) {
+        return false;
+      }
+
+      // Buscar token no banco de dados pelo token (que é único)
       const tokenEntity = await this.tokenRepository.findOne({
-        where: { token: cleanToken, active: true },
+        where: { 
+          token: cleanToken,
+          active: true 
+        },
       });
 
       if (!tokenEntity) {
-        console.error('Token não encontrado no banco de dados ou inativo');
+        return false;
+      }
+
+      // Verificar se o userId do token corresponde ao userId no banco
+      if (tokenEntity.userId !== userId) {
         return false;
       }
 
       // Verificar se o token não expirou no banco de dados
       const now = new Date();
       if (tokenEntity.expiresAt < now) {
-        console.error('Token expirado no banco de dados');
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Erro ao validar token:', error.message);
-      console.error('Stack:', error.stack);
       return false;
     }
   }
@@ -117,14 +156,13 @@ export class TokenService {
   }
 
   async deactivateAllUserTokens(userId: string): Promise<void> {
-    const activeTokens = await this.tokenRepository.find({
-      where: { userId, active: true },
-    });
-
-    for (const token of activeTokens) {
-      token.active = false;
-      await this.tokenRepository.save(token);
-    }
+    await this.tokenRepository
+      .createQueryBuilder()
+      .update(Token)
+      .set({ active: false })
+      .where('user_id = :userId', { userId })
+      .andWhere('active = :active', { active: true })
+      .execute();
   }
 
   generateQrCodeToken(

@@ -49,7 +49,7 @@ export class AuthService {
       user.role || 'user',
     );
 
-    // Salvar novo token no banco de dados
+    // Salvar novo token no banco de dados como ativo
     await this.tokenService.saveToken(token, user.id);
 
     return {
