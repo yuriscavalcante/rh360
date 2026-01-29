@@ -1,5 +1,7 @@
 package com.rh360.rh360.realtime;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 public enum RealTimeTopic {
     USERS("users"),
     TEAMS("teams"),
@@ -15,6 +17,7 @@ public enum RealTimeTopic {
         this.topic = topic;
     }
 
+    @JsonValue
     public String topic() {
         return topic;
     }
