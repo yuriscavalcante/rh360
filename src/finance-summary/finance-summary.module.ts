@@ -1,11 +1,16 @@
 import { Module } from '@nestjs/common';
 import { FinanceExpensesModule } from '../finance-expenses/finance-expenses.module';
 import { FinanceSalariesModule } from '../finance-salaries/finance-salaries.module';
+import { TokenModule } from '../token/token.module';
 import { FinanceSummaryController } from './finance-summary.controller';
 import { FinanceSummaryService } from './finance-summary.service';
 
 @Module({
-  imports: [FinanceExpensesModule, FinanceSalariesModule],
+  imports: [
+    FinanceExpensesModule,
+    FinanceSalariesModule,
+    TokenModule,
+  ],
   controllers: [FinanceSummaryController],
   providers: [FinanceSummaryService],
 })
