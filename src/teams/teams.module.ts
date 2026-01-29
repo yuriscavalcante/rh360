@@ -4,11 +4,12 @@ import { TeamsController } from './teams.controller';
 import { TeamsService } from './teams.service';
 import { Team } from '../entities/team.entity';
 import { TeamUser } from '../entities/team-user.entity';
+import { User } from '../entities/user.entity';
 import { TokenModule } from '../token/token.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Team, TeamUser]),
+    TypeOrmModule.forFeature([Team, TeamUser, User]),
     TokenModule,
   ],
   controllers: [TeamsController],
