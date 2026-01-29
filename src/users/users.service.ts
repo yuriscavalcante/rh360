@@ -86,7 +86,10 @@ export class UsersService {
   }
 
   async findById(id: string): Promise<UserResponseDto> {
-    const user = await this.usersRepository.findOne({ where: { id } });
+    const user = await this.usersRepository.findOne({
+      where: { id },
+      relations: ['permissions'],
+    });
 
     if (!user) {
       throw new NotFoundException('Usuário não encontrado');
@@ -176,6 +179,15 @@ export class UsersService {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       photo: user.photo || '',
+      permissions: user.permissions
+        ? user.permissions.map((perm) => ({
+            id: perm.id,
+            function: perm.function,
+            isPermitted: perm.isPermitted,
+            createdAt: perm.createdAt,
+            updatedAt: perm.updatedAt,
+          }))
+        : undefined,
     };
   }
 }

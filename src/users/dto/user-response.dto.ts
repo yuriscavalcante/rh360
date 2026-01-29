@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { UserPermissionResponseDto } from './user-permission-response.dto';
 
 export class UserResponseDto {
   @ApiProperty({
@@ -36,4 +37,11 @@ export class UserResponseDto {
     example: 'https://pub-xxx.r2.dev/users/photo.jpg',
   })
   photo: string;
+
+  @ApiProperty({
+    description: 'Permissões do usuário',
+    type: [UserPermissionResponseDto],
+    required: false,
+  })
+  permissions?: UserPermissionResponseDto[];
 }
