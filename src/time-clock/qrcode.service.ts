@@ -48,7 +48,7 @@ export class QrCodeService {
       ? frontendUrl.slice(0, -1) 
       : frontendUrl;
     
-    return `${baseUrl}/timeclock/mobile?token=${qrToken}`;
+    return `${baseUrl}/timeclock/mobile/qr?token=${qrToken}`;
   }
 
   /**

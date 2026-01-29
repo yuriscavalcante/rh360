@@ -23,10 +23,11 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { QrCodeTokenGuard } from '../auth/guards/qrcode-token.guard';
 import { UserId, UserEmail, UserRole } from '../auth/decorators/user.decorator';
 import { TimeClockService } from './time-clock.service';
 import { QrCodeService } from './qrcode.service';
-import { TokenService } from '../token/token.service';
+import { QrCodeTokenService } from '../qrcode-token/qrcode-token.service';
 import { UsersService } from '../users/users.service';
 import { TimeClock } from '../entities/time-clock.entity';
 import { QrCodeResponse } from './dto/qrcode-response.dto';
@@ -37,7 +38,7 @@ export class TimeClockController {
   constructor(
     private readonly timeClockService: TimeClockService,
     private readonly qrCodeService: QrCodeService,
-    private readonly tokenService: TokenService,
+    private readonly qrCodeTokenService: QrCodeTokenService,
     private readonly usersService: UsersService,
   ) {}
 
@@ -143,12 +144,12 @@ export class TimeClockController {
       await this.usersService.findById(userId);
 
       // Gerar token temporário para QR code
-      const qrToken = await this.tokenService.generateQrCodeToken(
+      const qrToken = await this.qrCodeTokenService.generateQrCodeToken(
         userId,
         email,
         role || 'user',
       );
-      await this.tokenService.saveQrCodeToken(qrToken, userId);
+      await this.qrCodeTokenService.saveQrCodeToken(qrToken, userId);
 
       // Gerar URL do QR code
       let qrCodeUrl: string;
@@ -170,7 +171,7 @@ export class TimeClockController {
       );
 
       // Calcular tempo de expiração em minutos
-      const qrCodeExpiration = this.tokenService.getQrCodeExpiration();
+      const qrCodeExpiration = this.qrCodeTokenService.getQrCodeExpiration();
       const expiresInMinutes = qrCodeExpiration / 60000; // converter ms para minutos
 
       const response: QrCodeResponse = {
@@ -199,17 +200,14 @@ export class TimeClockController {
   }
 
   @ApiOperation({
-    summary: 'Bater ponto via mobile (QR code)',
+    summary: 'Bater ponto via mobile',
     description:
-      'Endpoint público para bater ponto usando o token do QR code. ' +
-      'Este endpoint permite que o usuário bata ponto através do celular após escanear o QR code. ' +
+      'Endpoint para bater ponto através do celular usando autenticação JWT. ' +
       'A foto será validada usando reconhecimento facial antes de registrar o ponto. ' +
       'Aceita um parâmetro opcional "message" (string) para incluir uma mensagem no registro de ponto.',
   })
-  @ApiParam({
-    name: 'qrToken',
-    description: 'Token temporário do QR code',
-  })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -237,42 +235,77 @@ export class TimeClockController {
   @ApiResponse({
     status: 400,
     description:
-      'Requisição inválida - token inválido, arquivo de imagem ausente ou face não validada',
+      'Requisição inválida - arquivo de imagem ausente ou face não validada',
   })
   @ApiResponse({
     status: 401,
-    description: 'Token do QR code inválido ou expirado',
+    description: 'Token JWT inválido ou expirado',
   })
   @ApiResponse({
     status: 500,
     description: 'Erro interno do servidor ou erro na comunicação com CompreFace',
   })
-  @Post('mobile/:qrToken')
+  @ApiOperation({
+    summary: 'Bater ponto via mobile usando token QR',
+    description:
+      'Endpoint para bater ponto através do celular usando token QR code. ' +
+      'O token QR deve ser enviado como query parameter "token". ' +
+      'A foto será validada usando reconhecimento facial antes de registrar o ponto. ' +
+      'Aceita um parâmetro opcional "message" (string) para incluir uma mensagem no registro de ponto. ' +
+      'O token QR será desativado após o uso para segurança.',
+  })
+  @ApiQuery({
+    name: 'token',
+    required: true,
+    description: 'Token QR code para autenticação',
+  })
+  @UseGuards(QrCodeTokenGuard)
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        photo: {
+          type: 'string',
+          format: 'binary',
+          description: 'Arquivo de imagem para validação facial (obrigatório)',
+        },
+        message: {
+          type: 'string',
+          nullable: true,
+          description: 'Mensagem opcional para incluir no registro de ponto',
+        },
+      },
+      required: ['photo'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Ponto registrado com sucesso',
+    type: TimeClock,
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Requisição inválida - arquivo de imagem ausente ou face não validada',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Token QR inválido, expirado ou inativo',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Erro interno do servidor ou erro na comunicação com CompreFace',
+  })
+  @Post('mobile/qr')
   @UseInterceptors(FileInterceptor('photo'))
-  async clockInMobile(
-    @Param('qrToken') qrToken: string,
+  async clockInMobileWithQr(
+    @UserId() userId: string,
+    @Query('token') qrToken: string,
     @UploadedFile() photo: Express.Multer.File,
     @Body('message') message?: string,
   ): Promise<TimeClock> {
     try {
-      // Validar o token do QR code
-      const isValid = await this.tokenService.validateToken(qrToken);
-      if (!isValid) {
-        throw new HttpException(
-          'Token do QR code inválido ou expirado',
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
-
-      // Extrair userId do token
-      const userId = this.tokenService.extractUserId(qrToken);
-      if (!userId) {
-        throw new HttpException(
-          'Token do QR code inválido',
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
-
       // Verificar se o usuário existe
       await this.usersService.findById(userId);
 
@@ -291,8 +324,92 @@ export class TimeClockController {
         message,
       );
 
-      // Desativar o token do QR code após uso (opcional, por segurança)
-      // await this.tokenService.deactivateToken(qrToken);
+      // Desativar o token QR após uso para segurança
+      await this.qrCodeTokenService.deactivateQrCodeToken(qrToken);
+
+      return timeClock;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        `Erro ao bater ponto: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({
+    summary: 'Bater ponto via mobile',
+    description:
+      'Endpoint para bater ponto através do celular usando autenticação JWT. ' +
+      'A foto será validada usando reconhecimento facial antes de registrar o ponto. ' +
+      'Aceita um parâmetro opcional "message" (string) para incluir uma mensagem no registro de ponto.',
+  })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        photo: {
+          type: 'string',
+          format: 'binary',
+          description: 'Arquivo de imagem para validação facial (obrigatório)',
+        },
+        message: {
+          type: 'string',
+          nullable: true,
+          description: 'Mensagem opcional para incluir no registro de ponto',
+        },
+      },
+      required: ['photo'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Ponto registrado com sucesso',
+    type: TimeClock,
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Requisição inválida - arquivo de imagem ausente ou face não validada',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Token JWT inválido ou expirado',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Erro interno do servidor ou erro na comunicação com CompreFace',
+  })
+  @Post('mobile')
+  @UseInterceptors(FileInterceptor('photo'))
+  async clockInMobile(
+    @UserId() userId: string,
+    @UploadedFile() photo: Express.Multer.File,
+    @Body('message') message?: string,
+  ): Promise<TimeClock> {
+    try {
+      // Verificar se o usuário existe
+      await this.usersService.findById(userId);
+
+      // Verificar se o arquivo foi enviado
+      if (!photo) {
+        throw new HttpException(
+          'Arquivo de imagem é obrigatório',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Bater ponto (valida a face internamente)
+      const timeClock = await this.timeClockService.createWithFaceVerification(
+        userId,
+        photo,
+        message,
+      );
 
       return timeClock;
     } catch (error) {

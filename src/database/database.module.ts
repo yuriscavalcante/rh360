@@ -15,6 +15,7 @@ import { CompanyExpense } from '../entities/company-expense.entity';
 import { CompanyExpenseAttachment } from '../entities/company-expense-attachment.entity';
 import { Salary } from '../entities/salary.entity';
 import { SalaryAttachment } from '../entities/salary-attachment.entity';
+import { QrCodeToken } from '../entities/qrcode-token.entity';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { SalaryAttachment } from '../entities/salary-attachment.entity';
           CompanyExpenseAttachment,
           Salary,
           SalaryAttachment,
+          QrCodeToken,
         ],
         synchronize: false,
         logging: configService.get('DB_LOGGING', 'false') === 'true',
