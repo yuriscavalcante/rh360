@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   Query,
+  Headers,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -24,6 +25,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserId } from '../auth/decorators/user.decorator';
+import { TokenService } from '../token/token.service';
 import { UsersService } from './users.service';
 import { UserRequestDto } from './dto/user-request.dto';
 import { UserResponseDto } from './dto/user-response.dto';
@@ -31,7 +33,10 @@ import { UserResponseDto } from './dto/user-response.dto';
 @ApiTags('Usuários')
 @Controller('api/users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly tokenService: TokenService,
+  ) {}
 
   @ApiOperation({ summary: 'Criar novo usuário' })
   @ApiResponse({
@@ -89,6 +94,30 @@ export class UsersController {
       search,
     );
   }
+  @ApiOperation({ summary: 'Obter usuário atual' })
+  @ApiBearerAuth()
+  @ApiResponse({
+    status: 200,
+    description: 'Dados do usuário atual retornados com sucesso',
+    type: UserResponseDto,
+  })
+  
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  async getCurrentUser(
+    @Headers('authorization') authHeader: string,
+  ): Promise<UserResponseDto> {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new HttpException(
+        { error: 'Token não fornecido ou formato inválido' },
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    const token = authHeader.substring(7).trim();
+    const userId = this.tokenService.extractUserId(token);
+    return await this.usersService.findById(userId);
+  }
 
   @ApiOperation({ summary: 'Buscar usuário por ID' })
   @ApiBearerAuth()
@@ -103,18 +132,6 @@ export class UsersController {
     return await this.usersService.findById(id);
   }
 
-  @ApiOperation({ summary: 'Obter usuário atual' })
-  @ApiBearerAuth()
-  @ApiResponse({
-    status: 200,
-    description: 'Dados do usuário atual retornados com sucesso',
-    type: UserResponseDto,
-  })
-  @UseGuards(JwtAuthGuard)
-  @Get('me')
-  async getCurrentUser(@UserId() userId: string): Promise<UserResponseDto> {
-    return await this.usersService.findById(userId);
-  }
 
   @ApiOperation({ summary: 'Atualizar usuário' })
   @ApiBearerAuth()
