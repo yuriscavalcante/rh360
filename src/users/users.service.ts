@@ -2,6 +2,8 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
@@ -10,6 +12,7 @@ import { User } from '../entities/user.entity';
 import { Permission } from '../entities/permission.entity';
 import { UserRequestDto } from './dto/user-request.dto';
 import { UserResponseDto } from './dto/user-response.dto';
+import { UsersGateway } from './users.gateway';
 
 @Injectable()
 export class UsersService {
@@ -18,6 +21,8 @@ export class UsersService {
     private usersRepository: Repository<User>,
     @InjectRepository(Permission)
     private permissionRepository: Repository<Permission>,
+    @Inject(forwardRef(() => UsersGateway))
+    private usersGateway: UsersGateway,
   ) {}
 
   async create(
@@ -61,7 +66,12 @@ export class UsersService {
       await this.permissionRepository.save(permissions);
     }
 
-    return this.toResponseDto(savedUser);
+    const userResponse = this.toResponseDto(savedUser);
+    
+    // Emitir evento WebSocket para notificar sobre o novo usuário
+    this.usersGateway.emitUserCreated(userResponse);
+
+    return userResponse;
   }
 
   async findAll(
@@ -152,7 +162,12 @@ export class UsersService {
       }
     }
 
-    return this.toResponseDto(updatedUser);
+    const userResponse = this.toResponseDto(updatedUser);
+    
+    // Emitir evento WebSocket para notificar sobre a atualização do usuário
+    this.usersGateway.emitUserUpdated(userResponse);
+
+    return userResponse;
   }
 
   async delete(id: string): Promise<void> {
@@ -167,6 +182,9 @@ export class UsersService {
     user.deletedAt = new Date().toISOString();
 
     await this.usersRepository.save(user);
+    
+    // Emitir evento WebSocket para notificar sobre a remoção do usuário
+    this.usersGateway.emitUserDeleted(id);
   }
 
   private toResponseDto(user: User): UserResponseDto {

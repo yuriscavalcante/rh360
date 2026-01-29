@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
+import { UsersGateway } from './users.gateway';
 import { User } from '../entities/user.entity';
 import { Permission } from '../entities/permission.entity';
 import { TokenModule } from '../token/token.module';
@@ -12,7 +13,7 @@ import { TokenModule } from '../token/token.module';
     TokenModule,
   ],
   controllers: [UsersController],
-  providers: [UsersService],
-  exports: [UsersService],
+  providers: [UsersService, UsersGateway],
+  exports: [UsersService, UsersGateway],
 })
 export class UsersModule {}

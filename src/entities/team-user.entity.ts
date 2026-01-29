@@ -9,10 +9,10 @@ import { User } from './user.entity';
 
 @Entity('team_users')
 export class TeamUser {
-  @PrimaryColumn('uuid')
+  @PrimaryColumn({ type: 'uuid', name: 'team_id' })
   teamId: string;
 
-  @PrimaryColumn('uuid')
+  @PrimaryColumn({ type: 'uuid', name: 'user_id' })
   userId: string;
 
   @ManyToOne(() => Team, (team) => team.teamUsers, { onDelete: 'CASCADE' })
