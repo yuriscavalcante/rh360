@@ -23,6 +23,7 @@ import com.rh360.rh360.entity.Expense;
 import com.rh360.rh360.entity.User;
 import com.rh360.rh360.repository.ExpenseAttachmentRepository;
 import com.rh360.rh360.repository.ExpenseRepository;
+import com.rh360.rh360.realtime.RealTimePublisher;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Testes Unitários - ExpenseService")
@@ -39,6 +40,9 @@ class ExpenseServiceTest {
 
     @Mock
     private R2StorageService r2StorageService;
+
+    @Mock
+    private RealTimePublisher realTimePublisher;
 
     @InjectMocks
     private ExpenseService expenseService;

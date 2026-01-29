@@ -23,7 +23,10 @@ import org.springframework.data.domain.Pageable;
 
 import com.rh360.rh360.dto.UserResponse;
 import com.rh360.rh360.entity.User;
+import com.rh360.rh360.repository.PermissionRepository;
 import com.rh360.rh360.repository.UsersRepository;
+import com.rh360.rh360.realtime.NoOpRealTimePublisher;
+import com.rh360.rh360.realtime.RealTimePublisher;
 
 /**
  * Testes unitários para a classe UsersService.
@@ -44,6 +47,18 @@ class UsersServiceTest {
 
     @Mock
     private UsersRepository repository;
+
+    @Mock
+    private PermissionRepository permissionRepository;
+
+    @Mock
+    private R2StorageService r2StorageService;
+
+    @Mock
+    private CompreFaceService compreFaceService;
+
+    @Mock
+    private RealTimePublisher realTimePublisher;
 
     @InjectMocks
     private UsersService usersService;

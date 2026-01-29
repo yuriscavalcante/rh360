@@ -17,6 +17,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
 import com.rh360.rh360.dto.UserRequest;
 import com.rh360.rh360.dto.UserResponse;
@@ -182,10 +184,14 @@ class UsersControllerTest {
         when(usersService.update(eq(userId), any(User.class), isNull(), any())).thenReturn(updatedUser);
 
         // Act
-        UserResponse result = usersController.update(userId, userRequest);
+        ResponseEntity<?> response = usersController.update(userId, userRequest);
 
         // Assert
-        assertNotNull(result);
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody() instanceof UserResponse);
+        UserResponse result = (UserResponse) response.getBody();
         assertEquals(userId, result.getId());
         assertEquals("João Silva Atualizado", result.getName());
         verify(usersService, times(1)).update(eq(userId), any(User.class), isNull(), any());
@@ -198,9 +204,50 @@ class UsersControllerTest {
         doNothing().when(usersService).delete(userId);
 
         // Act
-        usersController.delete(userId);
+        ResponseEntity<?> response = usersController.delete(userId);
 
         // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(usersService, times(1)).delete(userId);
+    }
+
+    @Test
+    @DisplayName("Deve retornar erro 400 ao tentar deletar usuário inexistente")
+    void deveRetornarErro400AoDeletarUsuarioInexistente() {
+        // Arrange
+        UUID inexistenteId = UUID.randomUUID();
+        doThrow(new RuntimeException("Usuário não encontrado")).when(usersService).delete(inexistenteId);
+
+        // Act
+        ResponseEntity<?> response = usersController.delete(inexistenteId);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertTrue(response.getBody().toString().contains("Usuário não encontrado"));
+        verify(usersService, times(1)).delete(inexistenteId);
+    }
+
+    @Test
+    @DisplayName("Deve retornar erro 400 ao tentar atualizar usuário inexistente")
+    void deveRetornarErro400AoAtualizarUsuarioInexistente() {
+        // Arrange
+        UUID inexistenteId = UUID.randomUUID();
+        UserRequest userRequest = new UserRequest();
+        userRequest.setName("Teste");
+        userRequest.setEmail("teste@teste.com");
+        
+        doThrow(new RuntimeException("Usuário não encontrado")).when(usersService)
+                .update(eq(inexistenteId), any(User.class), isNull(), any());
+
+        // Act
+        ResponseEntity<?> response = usersController.update(inexistenteId, userRequest);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertTrue(response.getBody().toString().contains("Usuário não encontrado"));
+        verify(usersService, times(1)).update(eq(inexistenteId), any(User.class), isNull(), any());
     }
 }

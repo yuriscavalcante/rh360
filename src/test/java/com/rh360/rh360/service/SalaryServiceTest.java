@@ -22,6 +22,7 @@ import com.rh360.rh360.entity.Salary;
 import com.rh360.rh360.entity.User;
 import com.rh360.rh360.repository.SalaryAttachmentRepository;
 import com.rh360.rh360.repository.SalaryRepository;
+import com.rh360.rh360.realtime.RealTimePublisher;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Testes Unitários - SalaryService")
@@ -38,6 +39,9 @@ class SalaryServiceTest {
 
     @Mock
     private R2StorageService r2StorageService;
+
+    @Mock
+    private RealTimePublisher realTimePublisher;
 
     @InjectMocks
     private SalaryService salaryService;
