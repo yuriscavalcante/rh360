@@ -31,7 +31,7 @@ export class TokenService {
     );
 
     return this.jwtService.signAsync(payload, {
-      expiresIn: expiration / 1000, // Converter de ms para segundos
+      expiresIn: `${expiration / 1000}s`, // Converter de ms para segundos e passar como string
     });
   }
 
@@ -68,16 +68,39 @@ export class TokenService {
 
   async validateToken(token: string): Promise<boolean> {
     try {
-      // Validar se o token JWT está válido
-      await this.jwtService.verifyAsync(token);
+      // Limpar o token de possíveis espaços
+      const cleanToken = token.trim();
+      
+      if (!cleanToken) {
+        console.error('Token vazio ou inválido');
+        return false;
+      }
 
+      // Validar se o token JWT está válido
+      const decoded = await this.jwtService.verifyAsync(cleanToken);
+      console.log('Token JWT válido, decoded:', decoded);
+      
       // Validar se o token está ativo no banco de dados
       const tokenEntity = await this.tokenRepository.findOne({
-        where: { token, active: true },
+        where: { token: cleanToken, active: true },
       });
 
-      return !!tokenEntity;
+      if (!tokenEntity) {
+        console.error('Token não encontrado no banco de dados ou inativo');
+        return false;
+      }
+
+      // Verificar se o token não expirou no banco de dados
+      const now = new Date();
+      if (tokenEntity.expiresAt < now) {
+        console.error('Token expirado no banco de dados');
+        return false;
+      }
+
+      return true;
     } catch (error) {
+      console.error('Erro ao validar token:', error.message);
+      console.error('Stack:', error.stack);
       return false;
     }
   }
@@ -122,7 +145,7 @@ export class TokenService {
     );
 
     return this.jwtService.signAsync(payload, {
-      expiresIn: qrCodeExpiration / 1000,
+      expiresIn: `${qrCodeExpiration / 1000}s`, // Converter de ms para segundos e passar como string
     });
   }
 

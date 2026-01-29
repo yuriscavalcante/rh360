@@ -88,7 +88,7 @@ export class AuthController {
     }
 
     try {
-      const token = authHeader.substring(7);
+      const token = authHeader.substring(7).trim();
       return await this.tokenService.validateToken(token);
     } catch (error) {
       return false;
