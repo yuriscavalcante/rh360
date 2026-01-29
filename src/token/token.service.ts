@@ -187,6 +187,10 @@ export class TokenService {
     });
   }
 
+  async saveQrCodeToken(tokenString: string, userId: string): Promise<Token> {
+    return this.saveToken(tokenString, userId);
+  }
+
   getQrCodeExpiration(): number {
     return this.configService.get<number>('JWT_QRCODE_EXPIRATION', 900000);
   }

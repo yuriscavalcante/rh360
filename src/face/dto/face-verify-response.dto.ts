@@ -3,4 +3,5 @@ export class FaceVerifyResponse {
   confidence: number;
   message: string;
   user_id: string;
+  found_subject?: string | null;
 }

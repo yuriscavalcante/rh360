@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { randomUUID } from 'crypto';
 import { TimeClock } from '../entities/time-clock.entity';
 import { User } from '../entities/user.entity';
+import { FaceService } from '../face/face.service';
 
 @Injectable()
 export class TimeClockService {
@@ -11,6 +13,7 @@ export class TimeClockService {
     private timeClockRepository: Repository<TimeClock>,
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    private faceService: FaceService,
   ) {}
 
   async create(userId: string, message?: string): Promise<TimeClock> {
@@ -21,6 +24,7 @@ export class TimeClockService {
     }
 
     const timeClock = this.timeClockRepository.create({
+      id: randomUUID(),
       user,
       timestamp: new Date(),
       message,
@@ -29,6 +33,30 @@ export class TimeClockService {
     });
 
     return this.timeClockRepository.save(timeClock);
+  }
+
+  async createWithFaceVerification(
+    userId: string,
+    photo: Express.Multer.File,
+    message?: string,
+  ): Promise<TimeClock> {
+    // Validar rosto antes de bater o ponto
+    const faceVerification = await this.faceService.verifyFace(userId, photo);
+
+    if (!faceVerification.verified) {
+      throw new HttpException(
+        {
+          error: 'Validação facial falhou',
+          details: faceVerification.message,
+          confidence: faceVerification.confidence,
+          userId: userId,
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    // Se a validação passou, criar o registro de ponto
+    return this.create(userId, message);
   }
 
   async findByUser(userId: string): Promise<TimeClock[]> {

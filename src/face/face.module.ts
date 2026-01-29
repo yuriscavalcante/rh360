@@ -13,5 +13,6 @@ import { FaceService } from './face.service';
   ],
   controllers: [FaceController],
   providers: [FaceService],
+  exports: [FaceService],
 })
 export class FaceModule {}

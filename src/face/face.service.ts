@@ -18,11 +18,10 @@ export class FaceService {
     private readonly httpService: HttpService,
     private readonly usersService: UsersService,
   ) {
-    this.comprefaceApiUrl =
-      this.configService.get<string>('COMPREFACE_API_URL') || 'http://localhost:8000';
-    this.comprefaceApiKey = this.configService.get<string>('COMPREFACE_API_KEY') || '';
+    this.comprefaceApiUrl = this.configService.get<string>('COMPREFACE_API_URL');
+    this.comprefaceApiKey = this.configService.get<string>('COMPREFACE_API_KEY');
     this.subjectEndpoint = '/api/v1/recognition/faces';
-    this.verifyEndpoint = '/api/v1/verification/verify';
+    this.verifyEndpoint = '/api/v1/recognition/recognize';
   }
 
   async verifyFace(
@@ -65,7 +64,12 @@ export class FaceService {
 
       return this.processVerifyResponse(userId, response.data);
     } catch (error) {
-      throw new Error(`Erro ao verificar face no CompreFace: ${error.message}`);
+      const errorMessage = error.response?.data?.message || error.message;
+      const statusCode = error.response?.status || 'N/A';
+      const url = error.config?.url || 'N/A';
+      throw new Error(
+        `Erro ao verificar face no CompreFace (Status: ${statusCode}, URL: ${url}): ${errorMessage}`,
+      );
     }
   }
 
@@ -196,20 +200,29 @@ export class FaceService {
     userId: string,
     responseData: any,
   ): FaceVerifyResponse {
-    const expectedSubject = userId;
+    const expectedSubject = userId.toString().trim();
     let verified = false;
     let maxConfidence = 0.0;
     let foundSubject: string | null = null;
+    const minConfidenceThreshold = 0.5; // Threshold mínimo de 50% de confiança
 
-    // Processar resposta do CompreFace
+    // Log para debug (pode ser removido em produção)
+    console.log('CompreFace Response:', JSON.stringify(responseData, null, 2));
+    console.log('Expected Subject:', expectedSubject);
+
+    // Processar resposta do CompreFace - diferentes formatos possíveis
+    // Formato 1: responseData.result é um array
     if (responseData.result && Array.isArray(responseData.result)) {
       for (const result of responseData.result) {
         if (result.subjects && Array.isArray(result.subjects)) {
           for (const subject of result.subjects) {
             const subjectStr = subject.subject?.toString().trim();
-            const similarity = subject.similarity || 0;
+            const similarity = parseFloat(subject.similarity) || 0;
 
-            if (subjectStr && subjectStr === expectedSubject) {
+            // Comparação flexível (case-insensitive e ignora espaços)
+            const subjectMatch = subjectStr && subjectStr.toLowerCase() === expectedSubject.toLowerCase();
+
+            if (subjectMatch && similarity >= minConfidenceThreshold) {
               verified = true;
               foundSubject = subjectStr;
               maxConfidence = similarity;
@@ -225,13 +238,61 @@ export class FaceService {
       }
     }
 
+    // Formato 2: responseData.subjects é um array direto
+    if (!verified && responseData.subjects && Array.isArray(responseData.subjects)) {
+      for (const subject of responseData.subjects) {
+        const subjectStr = subject.subject?.toString().trim();
+        const similarity = parseFloat(subject.similarity) || 0;
+
+        if (subjectStr && subjectStr === expectedSubject && similarity >= minConfidenceThreshold) {
+          verified = true;
+          foundSubject = subjectStr;
+          maxConfidence = similarity;
+          break;
+        }
+
+        if (similarity > maxConfidence) {
+          maxConfidence = similarity;
+          foundSubject = subjectStr || null;
+        }
+      }
+    }
+
+    // Formato 3: responseData com estrutura aninhada diferente
+    if (!verified && responseData.data && responseData.data.subjects) {
+      for (const subject of responseData.data.subjects) {
+        const subjectStr = subject.subject?.toString().trim();
+        const similarity = parseFloat(subject.similarity) || 0;
+
+        if (subjectStr && subjectStr === expectedSubject && similarity >= minConfidenceThreshold) {
+          verified = true;
+          foundSubject = subjectStr;
+          maxConfidence = similarity;
+          break;
+        }
+
+        if (similarity > maxConfidence) {
+          maxConfidence = similarity;
+          foundSubject = subjectStr || null;
+        }
+      }
+    }
+
+    let message: string;
+    if (verified) {
+      message = `Face verificada com sucesso (confiança: ${(maxConfidence * 100).toFixed(2)}%)`;
+    } else if (foundSubject) {
+      message = `A foto foi cadastrada com outro usuário. Subject cadastrado: ${foundSubject}, Subject esperado: ${expectedSubject}, Confiança: ${(maxConfidence * 100).toFixed(2)}%. Por favor, recadastre a foto com o usuário correto.`;
+    } else {
+      message = `Face não encontrada no sistema. Nenhum subject correspondente encontrado.`;
+    }
+
     return {
       verified,
       confidence: maxConfidence,
-      message: verified
-        ? `Face verificada com sucesso (confiança: ${(maxConfidence * 100).toFixed(2)}%)`
-        : `Face não corresponde. Subject encontrado: ${foundSubject || 'nenhum'}, Confiança: ${(maxConfidence * 100).toFixed(2)}%`,
+      message,
       user_id: userId,
+      found_subject: foundSubject,
     };
   }
 }
