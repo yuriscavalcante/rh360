@@ -15,6 +15,10 @@ import com.rh360.rh360.dto.SalaryResponse;
 import com.rh360.rh360.entity.Salary;
 import com.rh360.rh360.entity.SalaryAttachment;
 import com.rh360.rh360.entity.User;
+import com.rh360.rh360.realtime.RealTimeEvent;
+import com.rh360.rh360.realtime.RealTimeTopic;
+import com.rh360.rh360.realtime.NoOpRealTimePublisher;
+import com.rh360.rh360.realtime.RealTimePublisher;
 import com.rh360.rh360.repository.SalaryAttachmentRepository;
 import com.rh360.rh360.repository.SalaryRepository;
 
@@ -25,16 +29,27 @@ public class SalaryService {
     private final SalaryAttachmentRepository attachmentRepository;
     private final UsersService usersService;
     private final R2StorageService r2StorageService;
+    private final RealTimePublisher realTimePublisher;
+
+    public SalaryService(
+            SalaryRepository repository,
+            SalaryAttachmentRepository attachmentRepository,
+            UsersService usersService,
+            R2StorageService r2StorageService,
+            RealTimePublisher realTimePublisher) {
+        this.repository = repository;
+        this.attachmentRepository = attachmentRepository;
+        this.usersService = usersService;
+        this.r2StorageService = r2StorageService;
+        this.realTimePublisher = realTimePublisher != null ? realTimePublisher : NoOpRealTimePublisher.INSTANCE;
+    }
 
     public SalaryService(
             SalaryRepository repository,
             SalaryAttachmentRepository attachmentRepository,
             UsersService usersService,
             R2StorageService r2StorageService) {
-        this.repository = repository;
-        this.attachmentRepository = attachmentRepository;
-        this.usersService = usersService;
-        this.r2StorageService = r2StorageService;
+        this(repository, attachmentRepository, usersService, r2StorageService, NoOpRealTimePublisher.INSTANCE);
     }
 
     public SalaryResponse create(UUID userId, SalaryRequest request) {
@@ -60,6 +75,7 @@ public class SalaryService {
         Salary saved = repository.save(salary);
         saveAttachments(saved, files);
         List<SalaryAttachment> attachments = attachmentRepository.findBySalary_IdAndDeletedAtIsNull(saved.getId());
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.SALARIES, "refresh", userId.toString()));
         return new SalaryResponse(saved, attachments);
     }
 
@@ -81,6 +97,7 @@ public class SalaryService {
         Salary saved = repository.save(existing);
         saveAttachments(saved, files);
         List<SalaryAttachment> attachments = attachmentRepository.findBySalary_IdAndDeletedAtIsNull(saved.getId());
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.SALARIES, "refresh", userId.toString()));
         return new SalaryResponse(saved, attachments);
     }
 
@@ -95,6 +112,7 @@ public class SalaryService {
         existing.setDeletedAt(LocalDateTime.now().toString());
         existing.setUpdatedAt(LocalDateTime.now().toString());
         repository.save(existing);
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.SALARIES, "refresh", userId.toString()));
     }
 
     public SalaryResponse findById(UUID salaryId, UUID userId) {

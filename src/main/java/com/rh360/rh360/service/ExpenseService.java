@@ -15,6 +15,10 @@ import com.rh360.rh360.dto.ExpenseResponse;
 import com.rh360.rh360.entity.Expense;
 import com.rh360.rh360.entity.ExpenseAttachment;
 import com.rh360.rh360.entity.User;
+import com.rh360.rh360.realtime.RealTimeEvent;
+import com.rh360.rh360.realtime.RealTimeTopic;
+import com.rh360.rh360.realtime.NoOpRealTimePublisher;
+import com.rh360.rh360.realtime.RealTimePublisher;
 import com.rh360.rh360.repository.ExpenseAttachmentRepository;
 import com.rh360.rh360.repository.ExpenseRepository;
 
@@ -25,16 +29,27 @@ public class ExpenseService {
     private final ExpenseAttachmentRepository attachmentRepository;
     private final UsersService usersService;
     private final R2StorageService r2StorageService;
+    private final RealTimePublisher realTimePublisher;
+
+    public ExpenseService(
+            ExpenseRepository repository,
+            ExpenseAttachmentRepository attachmentRepository,
+            UsersService usersService,
+            R2StorageService r2StorageService,
+            RealTimePublisher realTimePublisher) {
+        this.repository = repository;
+        this.attachmentRepository = attachmentRepository;
+        this.usersService = usersService;
+        this.r2StorageService = r2StorageService;
+        this.realTimePublisher = realTimePublisher != null ? realTimePublisher : NoOpRealTimePublisher.INSTANCE;
+    }
 
     public ExpenseService(
             ExpenseRepository repository,
             ExpenseAttachmentRepository attachmentRepository,
             UsersService usersService,
             R2StorageService r2StorageService) {
-        this.repository = repository;
-        this.attachmentRepository = attachmentRepository;
-        this.usersService = usersService;
-        this.r2StorageService = r2StorageService;
+        this(repository, attachmentRepository, usersService, r2StorageService, NoOpRealTimePublisher.INSTANCE);
     }
 
     public ExpenseResponse create(UUID userId, ExpenseRequest request) {
@@ -60,6 +75,7 @@ public class ExpenseService {
         Expense saved = repository.save(expense);
         saveAttachments(saved, files);
         List<ExpenseAttachment> attachments = attachmentRepository.findByExpense_IdAndDeletedAtIsNull(saved.getId());
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.EXPENSES, "refresh", userId.toString()));
         return new ExpenseResponse(saved, attachments);
     }
 
@@ -81,6 +97,7 @@ public class ExpenseService {
         Expense saved = repository.save(existing);
         saveAttachments(saved, files);
         List<ExpenseAttachment> attachments = attachmentRepository.findByExpense_IdAndDeletedAtIsNull(saved.getId());
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.EXPENSES, "refresh", userId.toString()));
         return new ExpenseResponse(saved, attachments);
     }
 
@@ -95,6 +112,7 @@ public class ExpenseService {
         existing.setDeletedAt(LocalDateTime.now().toString());
         existing.setUpdatedAt(LocalDateTime.now().toString());
         repository.save(existing);
+        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.EXPENSES, "refresh", userId.toString()));
     }
 
     public ExpenseResponse findById(UUID expenseId, UUID userId) {

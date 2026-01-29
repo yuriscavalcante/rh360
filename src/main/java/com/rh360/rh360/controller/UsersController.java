@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
 import com.rh360.rh360.dto.UserRequest;
 import com.rh360.rh360.dto.UserResponse;
@@ -257,19 +259,24 @@ public class UsersController {
         )
     })
     @PutMapping(value = "/{id}", consumes = {"application/json"})
-    public UserResponse update(@PathVariable UUID id, @RequestBody UserRequest userRequest) {
-        User user = new User();
-        user.setName(userRequest.getName());
-        user.setEmail(userRequest.getEmail());
-        user.setPassword(userRequest.getPassword());
-        user.setRole(userRequest.getRole());
-        user.setStatus(userRequest.getStatus());
-        User updatedUser = service.update(id, user, null, userRequest.getPermissions());
-        return new UserResponse(updatedUser);
+    public ResponseEntity<?> update(@PathVariable UUID id, @RequestBody UserRequest userRequest) {
+        try {
+            User user = new User();
+            user.setName(userRequest.getName());
+            user.setEmail(userRequest.getEmail());
+            user.setPassword(userRequest.getPassword());
+            user.setRole(userRequest.getRole());
+            user.setStatus(userRequest.getStatus());
+            User updatedUser = service.update(id, user, null, userRequest.getPermissions());
+            return ResponseEntity.ok(new UserResponse(updatedUser));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("{\"error\":\"" + e.getMessage() + "\"}");
+        }
     }
 
     @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
-    public UserResponse update(
+    public ResponseEntity<?> update(
             @PathVariable UUID id,
             @RequestParam("name") String name,
             @RequestParam("email") String email,
@@ -277,14 +284,19 @@ public class UsersController {
             @RequestParam(value = "role", required = false) String role,
             @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "photo", required = false) MultipartFile photo) {
-        User user = new User();
-        user.setName(name);
-        user.setEmail(email);
-        user.setPassword(password);
-        user.setRole(role);
-        user.setStatus(status);
-        User updatedUser = service.update(id, user, photo);
-        return new UserResponse(updatedUser);
+        try {
+            User user = new User();
+            user.setName(name);
+            user.setEmail(email);
+            user.setPassword(password);
+            user.setRole(role);
+            user.setStatus(status);
+            User updatedUser = service.update(id, user, photo);
+            return ResponseEntity.ok(new UserResponse(updatedUser));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("{\"error\":\"" + e.getMessage() + "\"}");
+        }
     }
 
     @Operation(
@@ -319,7 +331,13 @@ public class UsersController {
         )
     })
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable UUID id) {
-        service.delete(id);
+    public ResponseEntity<?> delete(@PathVariable UUID id) {
+        try {
+            service.delete(id);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("{\"error\":\"" + e.getMessage() + "\"}");
+        }
     }
 }

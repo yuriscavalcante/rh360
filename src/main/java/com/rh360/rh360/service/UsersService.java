@@ -223,8 +223,16 @@ public class UsersService {
         
         // Recarregar o usuário com as permissões
         User result = repository.findById(updatedUser.getId()).orElse(updatedUser);
-        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.USERS, "refresh", null));
-        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.USERS_ME, "refresh", result.getId().toString()));
+        
+        // Publicar eventos realtime (não deve quebrar o fluxo se falhar)
+        try {
+            realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.USERS, "refresh", null));
+            realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.USERS_ME, "refresh", result.getId().toString()));
+        } catch (Exception e) {
+            logger.error("Erro ao publicar evento realtime ao atualizar usuário {}: {}", id, e.getMessage(), e);
+            // Não relança a exceção para não quebrar a operação principal
+        }
+        
         return result;
     }
 
@@ -236,8 +244,15 @@ public class UsersService {
         existingUser.setStatus("deleted");
         existingUser.setUpdatedAt(LocalDateTime.now().toString());
         repository.save(existingUser);
-        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.USERS, "refresh", null));
-        realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.USERS_ME, "refresh", existingUser.getId().toString()));
+        
+        // Publicar eventos realtime (não deve quebrar o fluxo se falhar)
+        try {
+            realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.USERS, "refresh", null));
+            realTimePublisher.publish(new RealTimeEvent(RealTimeTopic.USERS_ME, "refresh", existingUser.getId().toString()));
+        } catch (Exception e) {
+            logger.error("Erro ao publicar evento realtime ao deletar usuário {}: {}", id, e.getMessage(), e);
+            // Não relança a exceção para não quebrar a operação principal
+        }
     }
 
     /**

@@ -9,6 +9,8 @@ public enum RealTimeTopic {
     PERMISSIONS("permissions"),
     PERMISSION_TEMPLATES("permission-templates"),
     COMPANY_EXPENSES("company-expenses"),
+    EXPENSES("expenses"),
+    SALARIES("salaries"),
     USERS_ME("users-me");
 
     private final String topic;
