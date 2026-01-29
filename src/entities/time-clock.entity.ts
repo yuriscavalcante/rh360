@@ -24,9 +24,9 @@ export class TimeClock {
   @Column({ length: 500, nullable: true })
   message: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'created_at', nullable: true })
   createdAt: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'updated_at', nullable: true })
   updatedAt: string;
 }

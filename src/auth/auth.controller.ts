@@ -6,12 +6,14 @@ import {
   Headers,
   HttpStatus,
   HttpException,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { TokenService } from '../token/token.service';
 import { LoginRequestDto } from './dto/login-request.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @ApiTags('Autenticação')
 @Controller('api/auth')
@@ -33,8 +35,13 @@ export class AuthController {
     try {
       return await this.authService.login(loginDto);
     } catch (error) {
+      // Se já é um HttpException, apenas relança
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      // Caso contrário, cria um novo HttpException com a mensagem do erro
       throw new HttpException(
-        { error: error.message },
+        { error: error.message || 'Erro ao realizar login' },
         HttpStatus.UNAUTHORIZED,
       );
     }
@@ -42,6 +49,7 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Realizar logout' })
   @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiResponse({ status: 200, description: 'Logout realizado com sucesso' })
   @ApiResponse({ status: 401, description: 'Não autenticado' })
   @Post('logout')

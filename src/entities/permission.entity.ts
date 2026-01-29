@@ -25,12 +25,12 @@ export class Permission {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column({ nullable: true })
+  @Column({ name: 'created_at', nullable: true })
   createdAt: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'updated_at', nullable: true })
   updatedAt: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'deleted_at', nullable: true })
   deletedAt: string;
 }

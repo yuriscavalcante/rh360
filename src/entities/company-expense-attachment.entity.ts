@@ -24,12 +24,12 @@ export class CompanyExpenseAttachment {
   @Column({ nullable: false, length: 2048 })
   url: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'created_at', nullable: true })
   createdAt: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'updated_at', nullable: true })
   updatedAt: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'deleted_at', nullable: true })
   deletedAt: string;
 }

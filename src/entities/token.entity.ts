@@ -13,15 +13,15 @@ export class Token {
   @Column({ length: 1000, unique: true, nullable: false })
   token: string;
 
-  @Column('uuid', { nullable: false })
+  @Column('uuid', { name: 'user_id', nullable: false })
   userId: string;
 
   @Column({ nullable: false, default: true })
   active: boolean;
 
-  @Column({ type: 'timestamp', nullable: false })
+  @Column({ name: 'created_at', type: 'timestamp', nullable: false })
   createdAt: Date;
 
-  @Column({ type: 'timestamp', nullable: false })
+  @Column({ name: 'expires_at', type: 'timestamp', nullable: false })
   expiresAt: Date;
 }
