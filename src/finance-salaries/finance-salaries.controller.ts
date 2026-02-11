@@ -14,6 +14,7 @@ import {
   HttpException,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { FinanceSalariesService } from './finance-salaries.service';
 import { SalaryRequest } from './dto/salary-request.dto';
 import { SalaryResponse } from './dto/salary-response.dto';
@@ -21,8 +22,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserId } from '../auth/decorators/user.decorator';
 import { DateUtil } from '../utils/date.util';
 
+@ApiTags('Financeiro - Salários')
 @Controller('api/finance/salaries')
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class FinanceSalariesController {
   constructor(private readonly service: FinanceSalariesService) {}
 

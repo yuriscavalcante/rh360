@@ -4,8 +4,8 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
+import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({
   cors: {
@@ -21,7 +21,6 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleConnection(client: Socket) {
     this.logger.log(`Cliente conectado: ${client.id}`);
-    // Quando um cliente se conecta, ele automaticamente receberá atualizações
     client.join('users-list');
   }
 

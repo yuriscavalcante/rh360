@@ -14,14 +14,17 @@ import {
   HttpException,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { CompanyExpensesService } from './company-expenses.service';
 import { CompanyExpenseRequest } from './dto/company-expense-request.dto';
 import { CompanyExpenseResponse } from './dto/company-expense-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DateUtil } from '../utils/date.util';
 
+@ApiTags('Financeiro - Despesas da Empresa')
 @Controller('api/finance/company-expenses')
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class CompanyExpensesController {
   constructor(private readonly service: CompanyExpensesService) {}
 

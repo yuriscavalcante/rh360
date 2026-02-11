@@ -3,7 +3,6 @@ import {
   Post,
   Param,
   Body,
-  Query,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -11,16 +10,23 @@ import {
   HttpException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
 import { FaceService } from './face.service';
 import { FaceVerifyResponse } from './dto/face-verify-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserId } from '../auth/decorators/user.decorator';
 
+@ApiTags('Reconhecimento Facial')
 @Controller('api/faces')
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class FaceController {
   constructor(private readonly service: FaceService) {}
 
+  @ApiOperation({ summary: 'Verificar face do usuário (upload de foto)' })
+  @ApiParam({ name: 'userId', description: 'ID do usuário' })
+  @ApiResponse({ status: 200, description: 'Verificação realizada', type: FaceVerifyResponse })
+  @ApiResponse({ status: 403, description: 'Sem permissão para validar este usuário' })
   @Post(':userId/verify')
   @UseInterceptors(FileInterceptor('photo'))
   async verifyFace(
@@ -52,6 +58,8 @@ export class FaceController {
     }
   }
 
+  @ApiOperation({ summary: 'Verificar minha face (upload de foto)' })
+  @ApiResponse({ status: 200, description: 'Verificação realizada', type: FaceVerifyResponse })
   @Post('me/verify')
   @UseInterceptors(FileInterceptor('photo'))
   async verifyMyFace(
@@ -61,6 +69,10 @@ export class FaceController {
     return this.verifyFace(userId, photo, userId);
   }
 
+  @ApiOperation({ summary: 'Registrar face do usuário (upload de foto)' })
+  @ApiParam({ name: 'userId', description: 'ID do usuário' })
+  @ApiResponse({ status: 200, description: 'Face registrada com sucesso' })
+  @ApiResponse({ status: 403, description: 'Sem permissão' })
   @Post(':userId/register')
   @UseInterceptors(FileInterceptor('photo'))
   async registerFace(
@@ -100,6 +112,8 @@ export class FaceController {
     }
   }
 
+  @ApiOperation({ summary: 'Registrar minha face (upload de foto)' })
+  @ApiResponse({ status: 200, description: 'Face registrada com sucesso' })
   @Post('me/register')
   @UseInterceptors(FileInterceptor('photo'))
   async registerMyFace(
@@ -109,6 +123,10 @@ export class FaceController {
     return this.registerFace(userId, photo, userId);
   }
 
+  @ApiOperation({ summary: 'Verificar face por URL da foto' })
+  @ApiParam({ name: 'userId', description: 'ID do usuário' })
+  @ApiBody({ schema: { type: 'object', properties: { photoUrl: { type: 'string' } }, required: ['photoUrl'] } })
+  @ApiResponse({ status: 200, description: 'Verificação realizada', type: FaceVerifyResponse })
   @Post(':userId/verify-url')
   async verifyFaceFromUrl(
     @Param('userId') userId: string,
@@ -139,6 +157,10 @@ export class FaceController {
     }
   }
 
+  @ApiOperation({ summary: 'Registrar face por URL da foto' })
+  @ApiParam({ name: 'userId', description: 'ID do usuário' })
+  @ApiBody({ schema: { type: 'object', properties: { photoUrl: { type: 'string' } }, required: ['photoUrl'] } })
+  @ApiResponse({ status: 200, description: 'Face registrada com sucesso' })
   @Post(':userId/register-url')
   async registerFaceFromUrl(
     @Param('userId') userId: string,

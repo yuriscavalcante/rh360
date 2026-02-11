@@ -14,6 +14,7 @@ import {
   HttpException,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { FinanceExpensesService } from './finance-expenses.service';
 import { ExpenseRequest } from './dto/expense-request.dto';
 import { ExpenseResponse } from './dto/expense-response.dto';
@@ -21,8 +22,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserId } from '../auth/decorators/user.decorator';
 import { DateUtil } from '../utils/date.util';
 
+@ApiTags('Financeiro - Despesas')
 @Controller('api/finance/expenses')
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class FinanceExpensesController {
   constructor(private readonly service: FinanceExpensesService) {}
 
