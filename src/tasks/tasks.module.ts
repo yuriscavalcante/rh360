@@ -6,6 +6,7 @@ import { Team } from '../entities/team.entity';
 import { TokenModule } from '../token/token.module';
 import { TasksController } from './tasks.controller';
 import { TasksService } from './tasks.service';
+import { TasksGateway } from './tasks.gateway';
 
 @Module({
   imports: [
@@ -13,6 +14,6 @@ import { TasksService } from './tasks.service';
     TokenModule,
   ],
   controllers: [TasksController],
-  providers: [TasksService],
+  providers: [TasksService, TasksGateway],
 })
 export class TasksModule {}

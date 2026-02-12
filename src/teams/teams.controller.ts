@@ -38,6 +38,26 @@ export class TeamsController {
     return this.teamsService.findUsersByTeamId(id);
   }
 
+  @ApiOperation({ summary: 'Adicionar usuário à equipe' })
+  @Post(':id/users/:userId')
+  async addUserToTeam(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+  ): Promise<{ success: boolean }> {
+    await this.teamsService.addUserToTeam(id, userId);
+    return { success: true };
+  }
+
+  @ApiOperation({ summary: 'Remover usuário da equipe' })
+  @Delete(':id/users/:userId')
+  async removeUserFromTeam(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+  ): Promise<{ success: boolean }> {
+    await this.teamsService.removeUserFromTeam(id, userId);
+    return { success: true };
+  }
+
   @ApiOperation({ summary: 'Buscar equipe por ID' })
   @Get(':id')
   async findById(@Param('id') id: string): Promise<Team> {

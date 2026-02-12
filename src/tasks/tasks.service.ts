@@ -7,6 +7,7 @@ import { Team } from '../entities/team.entity';
 import { TaskRequest } from './dto/task-request.dto';
 import { TaskResponse } from './dto/task-response.dto';
 import { UserResponseDto } from '../users/dto/user-response.dto';
+import { TasksGateway } from './tasks.gateway';
 
 @Injectable()
 export class TasksService {
@@ -17,6 +18,7 @@ export class TasksService {
     private usersRepository: Repository<User>,
     @InjectRepository(Team)
     private teamRepository: Repository<Team>,
+    private tasksGateway: TasksGateway,
   ) {}
 
   async create(request: TaskRequest): Promise<TaskResponse> {
@@ -60,7 +62,9 @@ export class TasksService {
     }
 
     const saved = await this.taskRepository.save(task);
-    return this.toResponse(saved, true, true);
+    const response = this.toResponse(saved, true, true);
+    this.tasksGateway.emitTaskCreated(response);
+    return response;
   }
 
   async findAll(
@@ -315,7 +319,9 @@ export class TasksService {
 
     task.updatedAt = new Date().toISOString();
     const saved = await this.taskRepository.save(task);
-    return this.toResponse(saved, true, true);
+    const response = this.toResponse(saved, true, true);
+    this.tasksGateway.emitTaskUpdated(response);
+    return response;
   }
 
   async delete(id: string): Promise<void> {
@@ -328,6 +334,7 @@ export class TasksService {
     task.updatedAt = new Date().toISOString();
     task.deletedAt = new Date().toISOString();
     await this.taskRepository.save(task);
+    this.tasksGateway.emitTaskDeleted(id);
   }
 
   private toResponse(

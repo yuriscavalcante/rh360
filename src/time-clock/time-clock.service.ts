@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto';
 import { TimeClock } from '../entities/time-clock.entity';
 import { User } from '../entities/user.entity';
 import { FaceService } from '../face/face.service';
+import { TimeClockGateway } from './time-clock.gateway';
 
 @Injectable()
 export class TimeClockService {
@@ -14,6 +15,7 @@ export class TimeClockService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     private faceService: FaceService,
+    private timeClockGateway: TimeClockGateway,
   ) {}
 
   async create(userId: string, message?: string): Promise<TimeClock> {
@@ -32,7 +34,9 @@ export class TimeClockService {
       updatedAt: new Date().toISOString(),
     });
 
-    return this.timeClockRepository.save(timeClock);
+    const saved = await this.timeClockRepository.save(timeClock);
+    this.timeClockGateway.emitAttendanceCreated(saved);
+    return saved;
   }
 
   async createWithFaceVerification(

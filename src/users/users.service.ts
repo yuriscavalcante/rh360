@@ -166,6 +166,8 @@ export class UsersService {
 
     // Emitir para a lista geral (WebSocket): clientes na listagem recebem user:updated
     this.usersGateway.emitUserUpdated(userResponse);
+    // Emitir para o próprio usuário (users/me): perfil atualiza em tempo real
+    this.usersGateway.emitUserMeUpdated(id, userResponse);
 
     return userResponse;
   }

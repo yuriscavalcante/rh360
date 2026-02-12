@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TimeClockController } from './time-clock.controller';
 import { TimeClockService } from './time-clock.service';
+import { TimeClockGateway } from './time-clock.gateway';
 import { QrCodeService } from './qrcode.service';
 import { TimeClock } from '../entities/time-clock.entity';
 import { User } from '../entities/user.entity';
@@ -20,7 +21,7 @@ import { UsersModule } from '../users/users.module';
     UsersModule,
   ],
   controllers: [TimeClockController],
-  providers: [TimeClockService, QrCodeService, QrCodeTokenGuard],
+  providers: [TimeClockService, TimeClockGateway, QrCodeService, QrCodeTokenGuard],
   exports: [TimeClockService],
 })
 export class TimeClockModule {}
