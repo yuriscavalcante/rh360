@@ -138,9 +138,13 @@ export class UsersController {
     return await this.usersService.findById(id);
   }
 
-  @ApiOperation({ summary: 'Atualizar usuário com foto (FormData)' })
+  @ApiOperation({
+    summary: 'Atualizar usuário',
+    description:
+      'Aceita JSON ou FormData (multipart/form-data). Todos os campos opcionais; foto no campo "photo".',
+  })
   @ApiBearerAuth()
-  @ApiConsumes('multipart/form-data')
+  @ApiConsumes('application/json', 'multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
@@ -150,7 +154,7 @@ export class UsersController {
         password: { type: 'string' },
         role: { type: 'string' },
         status: { type: 'string' },
-        permissions: { type: 'string', description: 'JSON array de permissões' },
+        permissions: { type: 'string', description: 'JSON array (FormData)' },
         photo: { type: 'string', format: 'binary' },
       },
     },
@@ -161,38 +165,15 @@ export class UsersController {
     type: UserResponseDto,
   })
   @UseGuards(JwtAuthGuard)
-  @Put(':id/with-photo')
+  @Put(':id')
   @UseInterceptors(FileInterceptor('photo'))
-  async updateWithPhoto(
+  async update(
     @Param('id') id: string,
     @Body() userDto: UserUpdateRequestDto,
     @UploadedFile() photo?: Express.Multer.File,
   ): Promise<UserResponseDto> {
     try {
       return await this.usersService.update(id, userDto, photo);
-    } catch (error) {
-      throw new HttpException(
-        { error: error.message },
-        error.status || HttpStatus.BAD_REQUEST,
-      );
-    }
-  }
-
-  @ApiOperation({ summary: 'Atualizar usuário (JSON ou FormData)' })
-  @ApiBearerAuth()
-  @ApiResponse({
-    status: 200,
-    description: 'Usuário atualizado com sucesso',
-    type: UserResponseDto,
-  })
-  @UseGuards(JwtAuthGuard)
-  @Put(':id')
-  async update(
-    @Param('id') id: string,
-    @Body() userDto: UserUpdateRequestDto,
-  ): Promise<UserResponseDto> {
-    try {
-      return await this.usersService.update(id, userDto);
     } catch (error) {
       throw new HttpException(
         { error: error.message },

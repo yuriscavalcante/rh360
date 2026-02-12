@@ -164,7 +164,7 @@ export class UsersService {
     // Recarrega com relations para a resposta incluir permissões
     const userResponse = await this.findById(id);
 
-    // Emitir evento WebSocket para notificar sobre a atualização do usuário
+    // Emitir para a lista geral (WebSocket): clientes na listagem recebem user:updated
     this.usersGateway.emitUserUpdated(userResponse);
 
     return userResponse;
