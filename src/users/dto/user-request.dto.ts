@@ -1,5 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import { UserPermissionRequestDto } from './user-permission-request.dto';
 
 export class UserRequestDto {
@@ -31,7 +40,27 @@ export class UserRequestDto {
   @IsOptional()
   status?: string;
 
-  @ApiProperty({ description: 'Lista de permissões do usuário', required: false })
+  @ApiProperty({
+    description:
+      'Lista de permissões. Em FormData, enviar como JSON string.',
+    required: false,
+  })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (value === '' || value === null || value === undefined) return undefined;
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : undefined;
+      } catch {
+        return undefined;
+      }
+    }
+    return undefined;
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UserPermissionRequestDto)
   permissions?: UserPermissionRequestDto[];
 }

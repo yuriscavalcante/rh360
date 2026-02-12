@@ -11,6 +11,7 @@ import * as bcrypt from 'bcrypt';
 import { User } from '../entities/user.entity';
 import { Permission } from '../entities/permission.entity';
 import { UserRequestDto } from './dto/user-request.dto';
+import { UserUpdateRequestDto } from './dto/user-update-request.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UsersGateway } from './users.gateway';
 
@@ -110,7 +111,7 @@ export class UsersService {
 
   async update(
     id: string,
-    userDto: UserRequestDto,
+    userDto: UserUpdateRequestDto,
     photo?: Express.Multer.File,
   ): Promise<UserResponseDto> {
     const user = await this.usersRepository.findOne({ where: { id } });
@@ -119,35 +120,33 @@ export class UsersService {
       throw new NotFoundException('Usuário não encontrado');
     }
 
-    // Verificar se o email já está sendo usado por outro usuário
-    if (userDto.email && userDto.email !== user.email) {
-      const existingUser = await this.usersRepository.findOne({
-        where: { email: userDto.email },
-      });
+    // Só altera campos que foram enviados (não undefined, não null, não string vazia)
+    const hasValue = (v: unknown): v is string =>
+      v != null && typeof v === 'string' && v.trim() !== '';
 
-      if (existingUser) {
+    if (hasValue(userDto.name)) user.name = userDto.name.trim();
+    if (hasValue(userDto.email)) {
+      const existingUser = await this.usersRepository.findOne({
+        where: { email: userDto.email.trim() },
+      });
+      if (existingUser && existingUser.id !== id) {
         throw new ConflictException('Email já cadastrado');
       }
+      user.email = userDto.email.trim();
     }
-
-    user.name = userDto.name || user.name;
-    user.email = userDto.email || user.email;
-    user.role = userDto.role || user.role;
-    user.status = userDto.status || user.status;
-    user.updatedAt = new Date().toISOString();
-
-    if (userDto.password) {
+    if (hasValue(userDto.role)) user.role = userDto.role.trim();
+    if (hasValue(userDto.status)) user.status = userDto.status.trim();
+    if (hasValue(userDto.password)) {
       user.password = await bcrypt.hash(userDto.password, 10);
     }
 
+    user.updatedAt = new Date().toISOString();
+
     const updatedUser = await this.usersRepository.save(user);
 
-    // Atualizar permissões se fornecidas
-    if (userDto.permissions) {
-      // Deletar permissões antigas
+    // Atualizar permissões apenas se o array foi enviado (pode ser [] para limpar)
+    if (userDto.permissions !== undefined && Array.isArray(userDto.permissions)) {
       await this.permissionRepository.delete({ user: { id } });
-
-      // Criar novas permissões
       if (userDto.permissions.length > 0) {
         const permissions = userDto.permissions.map((perm) =>
           this.permissionRepository.create({
@@ -162,8 +161,9 @@ export class UsersService {
       }
     }
 
-    const userResponse = this.toResponseDto(updatedUser);
-    
+    // Recarrega com relations para a resposta incluir permissões
+    const userResponse = await this.findById(id);
+
     // Emitir evento WebSocket para notificar sobre a atualização do usuário
     this.usersGateway.emitUserUpdated(userResponse);
 

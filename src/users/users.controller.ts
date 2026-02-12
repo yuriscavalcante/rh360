@@ -28,6 +28,7 @@ import { UserId } from '../auth/decorators/user.decorator';
 import { TokenService } from '../token/token.service';
 import { UsersService } from './users.service';
 import { UserRequestDto } from './dto/user-request.dto';
+import { UserUpdateRequestDto } from './dto/user-update-request.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 
 @ApiTags('Usuários')
@@ -38,30 +39,35 @@ export class UsersController {
     private readonly tokenService: TokenService,
   ) {}
 
-  @ApiOperation({ summary: 'Criar novo usuário' })
+  @ApiOperation({
+    summary: 'Criar novo usuário',
+    description:
+      'Aceita JSON ou FormData (multipart/form-data). Foto opcional no campo "photo".',
+  })
+  @ApiConsumes('application/json', 'multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        email: { type: 'string' },
+        password: { type: 'string' },
+        role: { type: 'string' },
+        status: { type: 'string' },
+        permissions: { type: 'string', description: 'JSON array (FormData)' },
+        photo: { type: 'string', format: 'binary' },
+      },
+      required: ['name', 'email'],
+    },
+  })
   @ApiResponse({
     status: 200,
     description: 'Usuário criado com sucesso',
     type: UserResponseDto,
   })
   @Post()
-  async create(@Body() userDto: UserRequestDto): Promise<UserResponseDto> {
-    try {
-      return await this.usersService.create(userDto);
-    } catch (error) {
-      throw new HttpException(
-        { error: error.message },
-        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  @ApiOperation({ summary: 'Criar novo usuário com foto' })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({ type: UserRequestDto })
-  @Post('with-photo')
   @UseInterceptors(FileInterceptor('photo'))
-  async createWithPhoto(
+  async create(
     @Body() userDto: UserRequestDto,
     @UploadedFile() photo?: Express.Multer.File,
   ): Promise<UserResponseDto> {
@@ -132,8 +138,47 @@ export class UsersController {
     return await this.usersService.findById(id);
   }
 
+  @ApiOperation({ summary: 'Atualizar usuário com foto (FormData)' })
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        email: { type: 'string' },
+        password: { type: 'string' },
+        role: { type: 'string' },
+        status: { type: 'string' },
+        permissions: { type: 'string', description: 'JSON array de permissões' },
+        photo: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Usuário atualizado com sucesso',
+    type: UserResponseDto,
+  })
+  @UseGuards(JwtAuthGuard)
+  @Put(':id/with-photo')
+  @UseInterceptors(FileInterceptor('photo'))
+  async updateWithPhoto(
+    @Param('id') id: string,
+    @Body() userDto: UserUpdateRequestDto,
+    @UploadedFile() photo?: Express.Multer.File,
+  ): Promise<UserResponseDto> {
+    try {
+      return await this.usersService.update(id, userDto, photo);
+    } catch (error) {
+      throw new HttpException(
+        { error: error.message },
+        error.status || HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
 
-  @ApiOperation({ summary: 'Atualizar usuário' })
+  @ApiOperation({ summary: 'Atualizar usuário (JSON ou FormData)' })
   @ApiBearerAuth()
   @ApiResponse({
     status: 200,
@@ -144,7 +189,7 @@ export class UsersController {
   @Put(':id')
   async update(
     @Param('id') id: string,
-    @Body() userDto: UserRequestDto,
+    @Body() userDto: UserUpdateRequestDto,
   ): Promise<UserResponseDto> {
     try {
       return await this.usersService.update(id, userDto);
